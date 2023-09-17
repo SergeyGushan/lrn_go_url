@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -18,39 +19,59 @@ func Test_saveUrl(t *testing.T) {
 	data.Set(dataKey, dataValue)
 	bodyData := data.Encode()
 
-	requestPost := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(bodyData))
-	requestPost.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	wPost := httptest.NewRecorder()
+	ts := httptest.NewServer(UrlRouter())
+	defer ts.Close()
 
-	shortenerHandler(wPost, requestPost)
-	resPost := wPost.Result()
+	requestPost, shortUrl := testRequest(t, ts, http.MethodPost, "/", bodyData, false)
 
-	assert.Equal(t, resPost.StatusCode, http.StatusCreated)
-
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		assert.NoError(t, err)
-	}(resPost.Body)
-
-	resBody, err := io.ReadAll(resPost.Body)
-	assert.NoError(t, err)
-
-	shortUrl := strings.Trim(string(resBody), "/")
-
+	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
 	assert.Equal(t, urlStore[shortUrl], dataValue)
 }
 func Test_getUrl(t *testing.T) {
-	shortUrl := "http://localhost:8080/MeQpwyse"
+	shortUrl := "/MeQpwyse"
 	dataValue := "https://github.com/SergeyGushan"
-	urlStore[shortUrl] = dataValue
+	urlStore[host+shortUrl] = dataValue
 
-	requestGet := httptest.NewRequest(http.MethodGet, shortUrl, nil)
+	ts := httptest.NewServer(UrlRouter())
+	defer ts.Close()
 
-	wGet := httptest.NewRecorder()
-	shortenerHandler(wGet, requestGet)
+	response, _ := testRequest(t, ts, http.MethodGet, shortUrl, "", true)
 
-	resGet := wGet.Result()
+	assert.Equal(t, response.StatusCode, http.StatusTemporaryRedirect)
+	assert.Equal(t, response.Header.Get("Location"), dataValue)
+}
 
-	assert.Equal(t, resGet.StatusCode, http.StatusTemporaryRedirect)
-	assert.Equal(t, resGet.Header.Get("Location"), dataValue)
+func testRequest(t *testing.T, ts *httptest.Server, method, path string, body string, prohibitRedirects bool) (*http.Response, string) {
+
+	var req *http.Request
+	var err error
+
+	if len(body) > 0 {
+		req, err = http.NewRequest(method, ts.URL+path, strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	} else {
+		req, err = http.NewRequest(method, ts.URL+path, nil)
+	}
+
+	require.NoError(t, err)
+
+	if prohibitRedirects {
+		ts.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse // Запретить редиректы
+		}
+	}
+
+	resp, err := ts.Client().Do(req)
+	require.NoError(t, err)
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
+
+	respBody, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	return resp, string(respBody)
 }

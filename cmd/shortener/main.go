@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"fmt"
+	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
 )
@@ -12,20 +13,22 @@ const host = "http://localhost:8080"
 
 var urlStore = make(map[string]string)
 
-func main() {
-	run()
+func UrlRouter() chi.Router {
+	r := chi.NewRouter()
+	r.Post("/", saveUrlHandler)
+	r.Get("/{shortCode}", getUrlHandler)
+
+	return r
 }
 
-func run() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", shortenerHandler)
-	err := http.ListenAndServe(":8080", mux)
+func main() {
+	err := http.ListenAndServe(":8080", UrlRouter())
 	if err != nil {
 		return
 	}
 }
 
-func saveUrl(res http.ResponseWriter, req *http.Request) {
+func saveUrlHandler(res http.ResponseWriter, req *http.Request) {
 	longURL := req.FormValue("url")
 
 	hash := md5.New()
@@ -49,25 +52,16 @@ func saveUrl(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func getUrl(res http.ResponseWriter, req *http.Request) {
-	shortURL := fmt.Sprintf("%s%s", host, req.URL.RequestURI())
+func getUrlHandler(res http.ResponseWriter, req *http.Request) {
+	shortCode := chi.URLParam(req, "shortCode")
+
+	shortURL := fmt.Sprintf("%s/%s", host, shortCode)
 
 	url, hasUrl := urlStore[shortURL]
 
 	if hasUrl {
 		res.Header().Set("Location", url)
 		res.WriteHeader(http.StatusTemporaryRedirect)
-	}
-}
-
-func shortenerHandler(res http.ResponseWriter, req *http.Request) {
-	if req.Method == http.MethodPost {
-		saveUrl(res, req)
-		return
-	}
-
-	if req.Method == http.MethodGet {
-		getUrl(res, req)
 		return
 	}
 
