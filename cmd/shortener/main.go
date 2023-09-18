@@ -4,12 +4,22 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"fmt"
+	"github.com/SergeyGushan/lrn_go_url/cmd/config"
 	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
 )
 
-const host = "http://localhost:8080"
+var host string
+
+func main() {
+	options := config.Flags()
+	host = options.B
+	err := http.ListenAndServe(options.A, UrlRouter())
+	if err != nil {
+		return
+	}
+}
 
 var urlStore = make(map[string]string)
 
@@ -19,13 +29,6 @@ func UrlRouter() chi.Router {
 	r.Get("/{shortCode}", getUrlHandler)
 
 	return r
-}
-
-func main() {
-	err := http.ListenAndServe(":8080", UrlRouter())
-	if err != nil {
-		return
-	}
 }
 
 func saveUrlHandler(res http.ResponseWriter, req *http.Request) {
