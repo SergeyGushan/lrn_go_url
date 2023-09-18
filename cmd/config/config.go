@@ -20,10 +20,10 @@ func SetOptions() Options {
 	}
 
 	if options.A == "" {
-		flag.StringVar(&options.A, "a", "localhost:8888", "server address")
+		flag.StringVar(&options.A, "a", "localhost:8080", "server address")
 	}
 	if options.B == "" {
-		flag.StringVar(&options.B, "b", "http://localhost:8888", "base url")
+		flag.StringVar(&options.B, "b", "http://localhost:8080", "base url")
 	}
 
 	if options.A == "" || options.B == "" {
