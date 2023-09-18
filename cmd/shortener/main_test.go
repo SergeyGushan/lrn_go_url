@@ -28,14 +28,14 @@ func Test_saveUrl(t *testing.T) {
 	assert.Equal(t, urlStore[shortURL], dataValue)
 }
 func Test_getUrl(t *testing.T) {
-	shortUrl := "/MeQpwyse"
+	shortURL := "/MeQpwyse"
 	dataValue := "https://github.com/SergeyGushan"
-	urlStore[host+shortUrl] = dataValue
+	urlStore[host+shortURL] = dataValue
 
 	ts := httptest.NewServer(URLRouter())
 	defer ts.Close()
 
-	response, _ := testRequest(t, ts, http.MethodGet, shortUrl, "", true)
+	response, _ := testRequest(t, ts, http.MethodGet, shortURL, "", true)
 
 	assert.Equal(t, response.StatusCode, http.StatusTemporaryRedirect)
 	assert.Equal(t, response.Header.Get("Location"), dataValue)
@@ -63,15 +63,11 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body st
 
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-
-		}
-	}(resp.Body)
 
 	respBody, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
+
+	resp.Body.Close()
 
 	return resp, string(respBody)
 }
