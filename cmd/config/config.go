@@ -1,17 +1,34 @@
 package config
 
-import "flag"
+import (
+	"flag"
+	"github.com/caarlos0/env/v6"
+	"log"
+)
 
 type Options struct {
-	A string
-	B string
+	A string `env:"SERVER_ADDRESS"`
+	B string `env:"BASE_URL"`
 }
 
-func Flags() Options {
+func SetOptions() Options {
 	options := Options{}
-	flag.StringVar(&options.A, "a", "localhost:8888", "server address")
-	flag.StringVar(&options.B, "b", "http://localhost:8000", "redirect address")
-	flag.Parse()
+
+	err := env.Parse(&options)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if options.A == "" {
+		flag.StringVar(&options.A, "a", "localhost:8888", "server address")
+	}
+	if options.B == "" {
+		flag.StringVar(&options.B, "b", "http://localhost:8000", "base url")
+	}
+
+	if options.A == "" || options.B == "" {
+		flag.Parse()
+	}
 
 	return options
 }

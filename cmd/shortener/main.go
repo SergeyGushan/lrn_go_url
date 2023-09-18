@@ -13,7 +13,7 @@ import (
 var host string
 
 func main() {
-	options := config.Flags()
+	options := config.SetOptions()
 	host = options.B
 	err := http.ListenAndServe(options.A, UrlRouter())
 	if err != nil {
