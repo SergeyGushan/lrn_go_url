@@ -26,6 +26,11 @@ func Test_saveUrl(t *testing.T) {
 
 	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
 	assert.Equal(t, urlStore[shortURL], dataValue)
+
+	defer func() {
+		err := requestPost.Body.Close()
+		require.NoError(t, err)
+	}()
 }
 func Test_getUrl(t *testing.T) {
 	shortURL := "/MeQpwyse"
@@ -39,6 +44,11 @@ func Test_getUrl(t *testing.T) {
 
 	assert.Equal(t, response.StatusCode, http.StatusTemporaryRedirect)
 	assert.Equal(t, response.Header.Get("Location"), dataValue)
+
+	defer func() {
+		err := response.Body.Close()
+		require.NoError(t, err)
+	}()
 }
 
 func testRequest(t *testing.T, ts *httptest.Server, method, path string, body string, prohibitRedirects bool) (*http.Response, string) {
@@ -66,8 +76,6 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body st
 
 	respBody, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
-
-	resp.Body.Close()
 
 	return resp, string(respBody)
 }
