@@ -19,20 +19,20 @@ func Test_saveUrl(t *testing.T) {
 	data.Set(dataKey, dataValue)
 	bodyData := data.Encode()
 
-	ts := httptest.NewServer(UrlRouter())
+	ts := httptest.NewServer(URLRouter())
 	defer ts.Close()
 
-	requestPost, shortUrl := testRequest(t, ts, http.MethodPost, "/", bodyData, false)
+	requestPost, shortURL := testRequest(t, ts, http.MethodPost, "/", bodyData, false)
 
 	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
-	assert.Equal(t, urlStore[shortUrl], dataValue)
+	assert.Equal(t, urlStore[shortURL], dataValue)
 }
 func Test_getUrl(t *testing.T) {
 	shortUrl := "/MeQpwyse"
 	dataValue := "https://github.com/SergeyGushan"
 	urlStore[host+shortUrl] = dataValue
 
-	ts := httptest.NewServer(UrlRouter())
+	ts := httptest.NewServer(URLRouter())
 	defer ts.Close()
 
 	response, _ := testRequest(t, ts, http.MethodGet, shortUrl, "", true)

@@ -15,7 +15,7 @@ var host string
 func main() {
 	options := config.SetOptions()
 	host = options.B
-	err := http.ListenAndServe(options.A, UrlRouter())
+	err := http.ListenAndServe(options.A, URLRouter())
 	if err != nil {
 		return
 	}
@@ -23,15 +23,15 @@ func main() {
 
 var urlStore = make(map[string]string)
 
-func UrlRouter() chi.Router {
+func URLRouter() chi.Router {
 	r := chi.NewRouter()
-	r.Post("/", saveUrlHandler)
-	r.Get("/{shortCode}", getUrlHandler)
+	r.Post("/", saveURLHandler)
+	r.Get("/{shortCode}", getURLHandler)
 
 	return r
 }
 
-func saveUrlHandler(res http.ResponseWriter, req *http.Request) {
+func saveURLHandler(res http.ResponseWriter, req *http.Request) {
 	longURL := req.FormValue("url")
 
 	hash := md5.New()
@@ -55,14 +55,14 @@ func saveUrlHandler(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func getUrlHandler(res http.ResponseWriter, req *http.Request) {
+func getURLHandler(res http.ResponseWriter, req *http.Request) {
 	shortCode := chi.URLParam(req, "shortCode")
 
 	shortURL := fmt.Sprintf("%s/%s", host, shortCode)
 
-	url, hasUrl := urlStore[shortURL]
+	url, hasURL := urlStore[shortURL]
 
-	if hasUrl {
+	if hasURL {
 		res.Header().Set("Location", url)
 		res.WriteHeader(http.StatusTemporaryRedirect)
 		return
