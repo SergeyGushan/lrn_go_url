@@ -23,7 +23,7 @@ func SetOptions() Options {
 		flag.StringVar(&options.A, "a", "localhost:8888", "server address")
 	}
 	if options.B == "" {
-		flag.StringVar(&options.B, "b", "http://localhost:8000", "base url")
+		flag.StringVar(&options.B, "b", "http://localhost:8888", "base url")
 	}
 
 	if options.A == "" || options.B == "" {
