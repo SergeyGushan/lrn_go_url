@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/SergeyGushan/lrn_go_url/cmd/config"
-	"github.com/SergeyGushan/lrn_go_url/internal/urlHandlers"
+	"github.com/SergeyGushan/lrn_go_url/internal/urlhandlers"
 	"github.com/go-chi/chi/v5"
 	"net/http"
 )
@@ -17,8 +17,8 @@ func main() {
 
 func URLRouter() chi.Router {
 	r := chi.NewRouter()
-	r.Post("/", urlHandlers.Save)
-	r.Get("/{shortCode}", urlHandlers.Get)
+	r.Post("/", urlhandlers.Save)
+	r.Get("/{shortCode}", urlhandlers.Get)
 
 	return r
 }

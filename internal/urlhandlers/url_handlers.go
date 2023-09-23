@@ -1,4 +1,4 @@
-package urlHandlers
+package urlhandlers
 
 import (
 	"crypto/md5"
@@ -25,7 +25,7 @@ func Save(res http.ResponseWriter, req *http.Request) {
 
 	shortURL := fmt.Sprintf("%s/%s", config.Opt.B, shortCode)
 
-	storage.UrlStore.Push(shortURL, longURL)
+	storage.URLStore.Push(shortURL, longURL)
 
 	res.WriteHeader(http.StatusCreated)
 
@@ -40,7 +40,7 @@ func Get(res http.ResponseWriter, req *http.Request) {
 
 	shortURL := fmt.Sprintf("%s/%s", config.Opt.B, shortCode)
 
-	url, hasURL := storage.UrlStore.GetByKey(shortURL)
+	url, hasURL := storage.URLStore.GetByKey(shortURL)
 
 	if hasURL {
 		res.Header().Set("Location", url)

@@ -1,12 +1,12 @@
 package storage
 
-type Url struct {
+type URL struct {
 	Urls map[string]string
 }
 
-var UrlStore = Url{}
+var URLStore = URL{}
 
-func (s *Url) Push(key, value string) {
+func (s *URL) Push(key, value string) {
 	if s.Urls == nil {
 		s.Urls = make(map[string]string)
 	}
@@ -14,7 +14,7 @@ func (s *Url) Push(key, value string) {
 	s.Urls[key] = value
 }
 
-func (s *Url) GetByKey(key string) (string, bool) {
+func (s *URL) GetByKey(key string) (string, bool) {
 	value, exists := s.Urls[key]
 	return value, exists
 }

@@ -27,9 +27,9 @@ func Test_saveUrl(t *testing.T) {
 	requestPost, shortURL := testRequest(t, ts, http.MethodPost, "/", bodyData, false)
 
 	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
-	fullUrl, hasUrl := storage.UrlStore.GetByKey(shortURL)
-	assert.Equal(t, hasUrl, true)
-	assert.Equal(t, fullUrl, dataValue)
+	fullURL, hasURL := storage.URLStore.GetByKey(shortURL)
+	assert.Equal(t, hasURL, true)
+	assert.Equal(t, fullURL, dataValue)
 
 	defer func() {
 		err := requestPost.Body.Close()
@@ -39,7 +39,7 @@ func Test_saveUrl(t *testing.T) {
 func Test_getUrl(t *testing.T) {
 	shortURL := "/MeQpwyse"
 	dataValue := "https://github.com/SergeyGushan"
-	storage.UrlStore.Push(config.Opt.B+shortURL, dataValue)
+	storage.URLStore.Push(config.Opt.B+shortURL, dataValue)
 
 	ts := httptest.NewServer(URLRouter())
 	defer ts.Close()
