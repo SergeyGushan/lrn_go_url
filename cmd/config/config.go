@@ -11,24 +11,22 @@ type Options struct {
 	B string `env:"BASE_URL"`
 }
 
-func SetOptions() Options {
-	options := Options{}
+var Opt = Options{}
 
-	err := env.Parse(&options)
+func SetOptions() {
+	err := env.Parse(&Opt)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if options.A == "" {
-		flag.StringVar(&options.A, "a", "localhost:8080", "server address")
+	if Opt.A == "" {
+		flag.StringVar(&Opt.A, "a", "localhost:8080", "server address")
 	}
-	if options.B == "" {
-		flag.StringVar(&options.B, "b", "http://localhost:8080", "base url")
+	if Opt.B == "" {
+		flag.StringVar(&Opt.B, "b", "http://localhost:8080", "base url")
 	}
 
-	if options.A == "" || options.B == "" {
+	if Opt.A == "" || Opt.B == "" {
 		flag.Parse()
 	}
-
-	return options
 }

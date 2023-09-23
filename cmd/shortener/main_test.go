@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/SergeyGushan/lrn_go_url/cmd/config"
+	"github.com/SergeyGushan/lrn_go_url/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -25,7 +27,9 @@ func Test_saveUrl(t *testing.T) {
 	requestPost, shortURL := testRequest(t, ts, http.MethodPost, "/", bodyData, false)
 
 	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
-	assert.Equal(t, urlStore[shortURL], dataValue)
+	fullUrl, hasUrl := storage.UrlStore.GetByKey(shortURL)
+	assert.Equal(t, hasUrl, true)
+	assert.Equal(t, fullUrl, dataValue)
 
 	defer func() {
 		err := requestPost.Body.Close()
@@ -35,7 +39,7 @@ func Test_saveUrl(t *testing.T) {
 func Test_getUrl(t *testing.T) {
 	shortURL := "/MeQpwyse"
 	dataValue := "https://github.com/SergeyGushan"
-	urlStore[host+shortURL] = dataValue
+	storage.UrlStore.Push(config.Opt.B+shortURL, dataValue)
 
 	ts := httptest.NewServer(URLRouter())
 	defer ts.Close()
