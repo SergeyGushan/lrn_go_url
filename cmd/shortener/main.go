@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/SergeyGushan/lrn_go_url/cmd/config"
 	"github.com/SergeyGushan/lrn_go_url/internal/urlhandlers"
 	"github.com/go-chi/chi/v5"
@@ -17,7 +18,7 @@ func URLRouter() chi.Router {
 
 func main() {
 	config.SetOptions()
-	err := http.ListenAndServe(config.Opt.ServerAddress, URLRouter())
+	err := http.ListenAndServe(fmt.Sprintf("%s:%s", config.Opt.ServerAddress, config.Opt.ServerPort), URLRouter())
 	if err != nil {
 		return
 	}

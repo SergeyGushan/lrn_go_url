@@ -9,6 +9,7 @@ import (
 type Options struct {
 	ServerAddress string `env:"SERVER_ADDRESS"`
 	BaseURL       string `env:"BASE_URL"`
+	ServerPort    string `env:"SERVER_PORT"`
 }
 
 var Opt = Options{}
@@ -20,8 +21,13 @@ func SetOptions() {
 	}
 
 	if Opt.ServerAddress == "" {
-		flag.StringVar(&Opt.ServerAddress, "a", "localhost:8080", "server address")
+		flag.StringVar(&Opt.ServerAddress, "a", "localhost", "server address")
 	}
+
+	if Opt.ServerPort == "" {
+		flag.StringVar(&Opt.ServerPort, "server-port", "8080", "server port")
+	}
+
 	if Opt.BaseURL == "" {
 		flag.StringVar(&Opt.BaseURL, "b", "http://localhost:8080", "base url")
 	}
