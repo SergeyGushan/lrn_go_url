@@ -17,7 +17,7 @@ func SetOptions() {
 		if addr := os.Getenv("SERVER_ADDRESS"); addr != "" {
 			Opt.ServerAddress = addr
 		} else {
-			flag.StringVar(&Opt.ServerAddress, "a", "localhost", "server address")
+			flag.StringVar(&Opt.ServerAddress, "a", "localhost:8080", "server address")
 		}
 	}
 
