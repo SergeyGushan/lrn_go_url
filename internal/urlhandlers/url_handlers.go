@@ -15,7 +15,7 @@ func Save(res http.ResponseWriter, req *http.Request) {
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-
+			panic(err)
 		}
 	}(req.Body)
 	body, err := io.ReadAll(req.Body)
