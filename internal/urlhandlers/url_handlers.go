@@ -23,7 +23,7 @@ func Save(res http.ResponseWriter, req *http.Request) {
 
 	shortCode := base64.URLEncoding.EncodeToString(hash.Sum(nil))[:8]
 
-	shortURL := fmt.Sprintf("%s/%s", config.Opt.B, shortCode)
+	shortURL := fmt.Sprintf("%s/%s", config.Opt.BaseUrl, shortCode)
 
 	storage.URLStore.Push(shortURL, longURL)
 
@@ -38,7 +38,7 @@ func Save(res http.ResponseWriter, req *http.Request) {
 func Get(res http.ResponseWriter, req *http.Request) {
 	shortCode := chi.URLParam(req, "shortCode")
 
-	shortURL := fmt.Sprintf("%s/%s", config.Opt.B, shortCode)
+	shortURL := fmt.Sprintf("%s/%s", config.Opt.BaseUrl, shortCode)
 
 	url, hasURL := storage.URLStore.GetByKey(shortURL)
 

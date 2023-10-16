@@ -9,7 +9,7 @@ import (
 
 func main() {
 	config.SetOptions()
-	err := http.ListenAndServe(config.Opt.A, URLRouter())
+	err := http.ListenAndServe(config.Opt.ServerAddress, URLRouter())
 	if err != nil {
 		return
 	}
