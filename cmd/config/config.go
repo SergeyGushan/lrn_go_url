@@ -14,17 +14,13 @@ type Options struct {
 var Opt = Options{}
 
 func SetOptions() {
+
+	flag.StringVar(&Opt.ServerAddress, "a", "localhost:8080", "server address")
+	flag.StringVar(&Opt.BaseURL, "b", "http://localhost:8080", "base url")
+	flag.Parse()
+
 	err := env.Parse(&Opt)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	if Opt.ServerAddress == "" {
-		flag.StringVar(&Opt.ServerAddress, "a", "localhost:8080", "server address")
-	}
-	if Opt.BaseURL == "" {
-		flag.StringVar(&Opt.BaseURL, "b", "http://localhost:8080", "base url")
-	}
-
-	flag.Parse()
 }
