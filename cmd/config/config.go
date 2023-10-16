@@ -2,6 +2,8 @@ package config
 
 import (
 	"flag"
+	"github.com/caarlos0/env/v6"
+	"log"
 	"os"
 )
 
@@ -13,6 +15,10 @@ type Options struct {
 var Opt = Options{}
 
 func SetOptions() {
+	if err := env.Parse(&Opt); err != nil {
+		log.Fatal(err)
+	}
+
 	if Opt.ServerAddress == "" {
 		if addr := os.Getenv("SERVER_ADDRESS"); addr != "" {
 			Opt.ServerAddress = addr
