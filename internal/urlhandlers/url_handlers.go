@@ -12,11 +12,22 @@ import (
 )
 
 func Save(res http.ResponseWriter, req *http.Request) {
-	longURL := req.FormValue("url")
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(req.Body)
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	longURL := string(body)
 
 	hash := md5.New()
 
-	_, err := io.WriteString(hash, longURL)
+	_, err = io.WriteString(hash, longURL)
 	if err != nil {
 		return
 	}

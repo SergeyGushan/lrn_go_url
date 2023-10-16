@@ -8,23 +8,17 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 )
 
 func Test_saveUrl(t *testing.T) {
-	data := url.Values{}
-	dataKey := "url"
 	dataValue := "https://github.com/SergeyGushan"
-
-	data.Set(dataKey, dataValue)
-	bodyData := data.Encode()
 
 	ts := httptest.NewServer(URLRouter())
 	defer ts.Close()
 
-	requestPost, shortURL := testRequest(t, ts, http.MethodPost, "/", bodyData, false)
+	requestPost, shortURL := testRequest(t, ts, http.MethodPost, "/", dataValue, false)
 
 	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
 	fullURL, hasURL := storage.URLStore.GetByKey(shortURL)
