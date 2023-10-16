@@ -20,6 +20,6 @@ func main() {
 
 	err := http.ListenAndServe(config.Opt.ServerAddress, URLRouter())
 	if err != nil {
-		return
+		panic(err)
 	}
 }
