@@ -2,8 +2,7 @@ package config
 
 import (
 	"flag"
-	"github.com/caarlos0/env/v6"
-	"log"
+	"os"
 )
 
 type Options struct {
@@ -15,24 +14,29 @@ type Options struct {
 var Opt = Options{}
 
 func SetOptions() {
-	err := env.Parse(&Opt)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	if Opt.ServerAddress == "" {
-		flag.StringVar(&Opt.ServerAddress, "a", "localhost", "server address")
+		if addr := os.Getenv("SERVER_ADDRESS"); addr != "" {
+			Opt.ServerAddress = addr
+		} else {
+			flag.StringVar(&Opt.ServerAddress, "server-address", "localhost", "server address")
+		}
 	}
 
 	if Opt.ServerPort == "" {
-		flag.StringVar(&Opt.ServerPort, "server-port", "8080", "server port")
+		if port := os.Getenv("SERVER_PORT"); port != "" {
+			Opt.ServerPort = port
+		} else {
+			flag.StringVar(&Opt.ServerPort, "server-port", "8080", "server port")
+		}
 	}
 
 	if Opt.BaseURL == "" {
-		flag.StringVar(&Opt.BaseURL, "b", "http://localhost:8080", "base url")
+		if baseURL := os.Getenv("BASE_URL"); baseURL != "" {
+			Opt.BaseURL = baseURL
+		} else {
+			flag.StringVar(&Opt.BaseURL, "base-url", "http://localhost:8080", "base url")
+		}
 	}
 
-	if Opt.ServerAddress == "" || Opt.BaseURL == "" {
-		flag.Parse()
-	}
+	flag.Parse()
 }

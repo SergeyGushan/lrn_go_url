@@ -18,7 +18,9 @@ func URLRouter() chi.Router {
 
 func main() {
 	config.SetOptions()
-	err := http.ListenAndServe(fmt.Sprintf("%s:%s", config.Opt.ServerAddress, config.Opt.ServerPort), URLRouter())
+	address := fmt.Sprintf("%s:%s", config.Opt.ServerAddress, config.Opt.ServerPort)
+	println(address)
+	err := http.ListenAndServe(address, URLRouter())
 	if err != nil {
 		return
 	}
