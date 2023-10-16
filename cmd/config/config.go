@@ -8,7 +8,7 @@ import (
 
 type Options struct {
 	ServerAddress string `env:"SERVER_ADDRESS"`
-	BaseUrl       string `env:"BASE_URL"`
+	BaseURL       string `env:"BASE_URL"`
 }
 
 var Opt = Options{}
@@ -22,11 +22,11 @@ func SetOptions() {
 	if Opt.ServerAddress == "" {
 		flag.StringVar(&Opt.ServerAddress, "a", "localhost:8080", "server address")
 	}
-	if Opt.BaseUrl == "" {
-		flag.StringVar(&Opt.BaseUrl, "b", "http://localhost:8080", "base url")
+	if Opt.BaseURL == "" {
+		flag.StringVar(&Opt.BaseURL, "b", "http://localhost:8080", "base url")
 	}
 
-	if Opt.ServerAddress == "" || Opt.BaseUrl == "" {
+	if Opt.ServerAddress == "" || Opt.BaseURL == "" {
 		flag.Parse()
 	}
 }

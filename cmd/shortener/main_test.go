@@ -39,7 +39,7 @@ func Test_saveUrl(t *testing.T) {
 func Test_getUrl(t *testing.T) {
 	shortURL := "/MeQpwyse"
 	dataValue := "https://github.com/SergeyGushan"
-	storage.URLStore.Push(config.Opt.BaseUrl+shortURL, dataValue)
+	storage.URLStore.Push(config.Opt.BaseURL+shortURL, dataValue)
 
 	ts := httptest.NewServer(URLRouter())
 	defer ts.Close()
