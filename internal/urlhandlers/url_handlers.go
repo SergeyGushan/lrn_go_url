@@ -14,7 +14,7 @@ import (
 )
 
 type StructReq struct {
-	Url string `json:"url"`
+	URL string `json:"url"`
 }
 
 type StructRes struct {
@@ -72,7 +72,7 @@ func Shorten(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	longURL := structReq.Url
+	longURL := structReq.URL
 
 	if longURL == "" {
 		return
@@ -92,7 +92,7 @@ func Shorten(res http.ResponseWriter, req *http.Request) {
 	storage.URLStore.Push(shortURL, longURL)
 
 	structRes.Result = shortURL
-	respJson, err := json.Marshal(structRes)
+	respJSON, err := json.Marshal(structRes)
 	if err != nil {
 		return
 	}
@@ -100,7 +100,7 @@ func Shorten(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusCreated)
 
-	_, err = res.Write(respJson)
+	_, err = res.Write(respJSON)
 	if err != nil {
 		return
 	}

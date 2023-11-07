@@ -35,8 +35,8 @@ func Test_saveUrl(t *testing.T) {
 
 func Test_shortUrl(t *testing.T) {
 	structRes := urlhandlers.StructReq{}
-	structRes.Url = "https://github.com/SergeyGushan"
-	respJson, err := json.Marshal(structRes)
+	structRes.URL = "https://github.com/SergeyGushan"
+	respJSON, err := json.Marshal(structRes)
 	if err != nil {
 		return
 	}
@@ -44,12 +44,12 @@ func Test_shortUrl(t *testing.T) {
 	ts := httptest.NewServer(URLRouter())
 	defer ts.Close()
 
-	requestPost, shortURL := testRequest(t, ts, http.MethodPost, "/api/shorten", string(respJson), false)
+	requestPost, shortURL := testRequest(t, ts, http.MethodPost, "/api/shorten", string(respJSON), false)
 
 	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
 	fullURL, hasURL := storage.URLStore.GetByKey(shortURL)
 	assert.Equal(t, hasURL, true)
-	assert.Equal(t, fullURL, structRes.Url)
+	assert.Equal(t, fullURL, structRes.URL)
 
 	defer func() {
 		err := requestPost.Body.Close()
