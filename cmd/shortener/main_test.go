@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/SergeyGushan/lrn_go_url/cmd/config"
 	"github.com/SergeyGushan/lrn_go_url/internal/storage"
+	"github.com/SergeyGushan/lrn_go_url/internal/urlhandlers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -30,6 +32,31 @@ func Test_saveUrl(t *testing.T) {
 		require.NoError(t, err)
 	}()
 }
+
+func Test_shortUrl(t *testing.T) {
+	structRes := urlhandlers.StructReq{}
+	structRes.Url = "https://github.com/SergeyGushan"
+	respJson, err := json.Marshal(structRes)
+	if err != nil {
+		return
+	}
+
+	ts := httptest.NewServer(URLRouter())
+	defer ts.Close()
+
+	requestPost, shortURL := testRequest(t, ts, http.MethodPost, "/api/shorten", string(respJson), false)
+
+	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
+	fullURL, hasURL := storage.URLStore.GetByKey(shortURL)
+	assert.Equal(t, hasURL, true)
+	assert.Equal(t, fullURL, structRes.Url)
+
+	defer func() {
+		err := requestPost.Body.Close()
+		require.NoError(t, err)
+	}()
+}
+
 func Test_getUrl(t *testing.T) {
 	shortURL := "/MeQpwyse"
 	dataValue := "https://github.com/SergeyGushan"
@@ -53,6 +80,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body st
 
 	var req *http.Request
 	var err error
+	var structReq urlhandlers.StructRes
 
 	if len(body) > 0 {
 		req, err = http.NewRequest(method, ts.URL+path, strings.NewReader(body))
@@ -74,6 +102,14 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body st
 
 	respBody, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
+
+	if resp.Header.Get("Content-Type") == "application/json" {
+		if err = json.Unmarshal(respBody, &structReq); err != nil {
+			panic(err)
+		}
+
+		respBody = []byte(structReq.Result)
+	}
 
 	return resp, string(respBody)
 }

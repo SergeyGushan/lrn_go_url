@@ -12,6 +12,7 @@ func URLRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Use(logger.LoggingMiddleware)
 	r.Post("/", urlhandlers.Save)
+	r.Post("/api/shorten", urlhandlers.Shorten)
 	r.Get("/{shortCode}", urlhandlers.Get)
 
 	return r
