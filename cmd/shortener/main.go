@@ -6,12 +6,14 @@ import (
 	"github.com/SergeyGushan/lrn_go_url/internal/logger"
 	"github.com/SergeyGushan/lrn_go_url/internal/urlhandlers"
 	"github.com/go-chi/chi/v5"
+	_ "github.com/go-chi/chi/v5"
 	"net/http"
 )
 
 func URLRouter() chi.Router {
 	r := chi.NewRouter()
-	r.Use(logger.LoggingMiddleware)
+	r.Use(logger.Handler)
+	r.Use(gzip.Handler)
 	r.Post("/", urlhandlers.Save)
 	r.Post("/api/shorten", urlhandlers.Shorten)
 	r.Get("/{shortCode}", urlhandlers.Get)
@@ -26,7 +28,7 @@ func main() {
 	}
 
 	config.SetOptions()
-	err = http.ListenAndServe(config.Opt.ServerAddress, gzip.Handler(URLRouter()))
+	err = http.ListenAndServe(config.Opt.ServerAddress, URLRouter())
 	if err != nil {
 		panic(err)
 	}
