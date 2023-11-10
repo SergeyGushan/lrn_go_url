@@ -33,7 +33,6 @@ func (w gzipResponseWriter) Write(b []byte) (int, error) {
 }
 
 func (w gzipResponseWriter) WriteHeader(statusCode int) {
-	w.Header().Del("Content-Length")
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
