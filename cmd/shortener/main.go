@@ -12,7 +12,6 @@ import (
 func URLRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Use(logger.LoggingMiddleware)
-	r.Use(gzip.Handler)
 	r.Post("/", urlhandlers.Save)
 	r.Post("/api/shorten", urlhandlers.Shorten)
 	r.Get("/{shortCode}", urlhandlers.Get)
