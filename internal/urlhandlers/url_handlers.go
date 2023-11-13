@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/SergeyGushan/lrn_go_url/cmd/config"
+	"github.com/SergeyGushan/lrn_go_url/internal/logger"
 	"github.com/SergeyGushan/lrn_go_url/internal/storage"
 	"github.com/go-chi/chi/v5"
 	"io"
@@ -50,6 +51,7 @@ func Save(res http.ResponseWriter, req *http.Request) {
 		panic(err)
 	}
 	longURL := string(body)
+	logger.Log.Info(longURL)
 	hash := md5.New()
 
 	_, err = io.WriteString(hash, longURL)
