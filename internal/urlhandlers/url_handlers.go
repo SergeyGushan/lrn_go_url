@@ -3,6 +3,7 @@ package urlhandlers
 import (
 	"bytes"
 	"crypto/md5"
+	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -78,7 +79,7 @@ func Shorten(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	hash := md5.New()
+	hash := sha1.New()
 
 	_, err = io.WriteString(hash, longURL)
 	if err != nil {
@@ -86,7 +87,6 @@ func Shorten(res http.ResponseWriter, req *http.Request) {
 	}
 
 	shortCode := base64.URLEncoding.EncodeToString(hash.Sum(nil))[:8]
-
 	shortURL := fmt.Sprintf("%s/%s", config.Opt.BaseURL, shortCode)
 
 	storage.URLStore.Push(shortURL, longURL)
