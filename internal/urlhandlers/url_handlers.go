@@ -28,7 +28,7 @@ type StructRes struct {
 func Save(res http.ResponseWriter, req *http.Request) {
 	var bodyReader io.Reader = req.Body
 
-	if !strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
+	if !strings.Contains(req.Header.Get("Content-Encoding"), "gzip") {
 		reader, err := gzip.NewReader(req.Body)
 		if err != nil {
 			http.Error(res, "Internal Server Error", http.StatusInternalServerError)
