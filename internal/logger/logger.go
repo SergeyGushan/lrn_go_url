@@ -3,6 +3,7 @@ package logger
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -86,6 +87,9 @@ func Handler(next http.Handler) http.Handler {
 		next.ServeHTTP(&lw, r) // внедряем реализацию http.ResponseWriter
 
 		duration := time.Since(start)
+		var reqBuf bytes.Buffer
+		teeBody := io.TeeReader(r.Body, &reqBuf)
+		r.Body = io.NopCloser(teeBody)
 
 		Log.Info("Request",
 			zap.String("uri", r.RequestURI),
@@ -94,6 +98,7 @@ func Handler(next http.Handler) http.Handler {
 			zap.String("duration", duration.String()),
 			zap.String("size", strconv.Itoa(responseData.size)),
 			zap.String("request_headers", headersToString(r.Header)),
+			zap.String("request_body", reqBuf.String()),
 			zap.String("response_headers", headersToString(lw.Header())),
 			zap.String("response_body", buf.String()), // записываем тело ответа из буфера
 		)
