@@ -2,6 +2,7 @@ package urlhandlers
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/md5"
 	"crypto/sha1"
 	"encoding/base64"
@@ -12,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
+	"strings"
 )
 
 type StructReq struct {
@@ -23,19 +25,31 @@ type StructRes struct {
 }
 
 func Save(res http.ResponseWriter, req *http.Request) {
+	var bodyReader io.Reader = req.Body
+
+	if !strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
+		reader, err := gzip.NewReader(req.Body)
+		if err != nil {
+			http.Error(res, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		defer reader.Close()
+		bodyReader = reader
+	}
+
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
+			// Обрабатываем ошибку
 			panic(err)
 		}
 	}(req.Body)
-	body, err := io.ReadAll(req.Body)
+
+	body, err := io.ReadAll(bodyReader)
 	if err != nil {
 		panic(err)
 	}
-
 	longURL := string(body)
-
 	hash := md5.New()
 
 	_, err = io.WriteString(hash, longURL)
