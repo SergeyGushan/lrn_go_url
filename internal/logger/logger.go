@@ -3,7 +3,7 @@ package logger
 import (
 	"bytes"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -87,9 +87,13 @@ func Handler(next http.Handler) http.Handler {
 		next.ServeHTTP(&lw, r) // внедряем реализацию http.ResponseWriter
 
 		duration := time.Since(start)
-		var reqBuf bytes.Buffer
-		teeBody := io.TeeReader(r.Body, &reqBuf)
-		r.Body = io.NopCloser(teeBody)
+		reqBody, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			// Обрабатываем ошибку
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(reqBody))
 
 		Log.Info("Request",
 			zap.String("uri", r.RequestURI),
@@ -98,7 +102,7 @@ func Handler(next http.Handler) http.Handler {
 			zap.String("duration", duration.String()),
 			zap.String("size", strconv.Itoa(responseData.size)),
 			zap.String("request_headers", headersToString(r.Header)),
-			zap.String("request_body", reqBuf.String()),
+			zap.String("request_body", string(reqBody)),
 			zap.String("response_headers", headersToString(lw.Header())),
 			zap.String("response_body", buf.String()), // записываем тело ответа из буфера
 		)
