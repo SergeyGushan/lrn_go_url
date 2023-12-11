@@ -13,7 +13,6 @@ func URLRouter() chi.Router {
 	r := chi.NewRouter()
 
 	r.Use(logger.Handler)
-	r.Use(gzip.Handler)
 	r.Post("/", urlhandlers.Save)
 	r.Post("/api/shorten", urlhandlers.Shorten)
 	r.Get("/{shortCode}", urlhandlers.Get)
@@ -28,7 +27,7 @@ func main() {
 	}
 
 	config.SetOptions()
-	err = http.ListenAndServe(config.Opt.ServerAddress, URLRouter())
+	err = http.ListenAndServe(config.Opt.ServerAddress, gzip.Handler(URLRouter()))
 	if err != nil {
 		panic(err)
 	}
