@@ -6,28 +6,36 @@ import (
 	"strings"
 )
 
-func Handler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
-			next.ServeHTTP(w, r)
-			return
-		}
+type GzipMiddleware struct {
+	Next http.Handler
+}
 
-		reader, err := gzip.NewReader(r.Body)
+func (gm *GzipMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		gm.Next.ServeHTTP(w, r)
+		return
+	}
+
+	writer := gzipResponseWriter{
+		ResponseWriter: w,
+		Writer:         gzip.NewWriter(w),
+	}
+
+	defer func(writer *gzipResponseWriter) {
+		err := writer.Close()
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
 		}
-		defer func(reader *gzip.Reader) {
-			err := reader.Close()
-			if err != nil {
-				panic(err)
-			}
-		}(reader)
+	}(&writer)
 
-		r.Body = reader
-		next.ServeHTTP(w, r)
-	})
+	r.Header.Del("Accept-Encoding")
+	r.Header.Add("Content-Encoding", "gzip")
+
+	gm.Next.ServeHTTP(writer, r)
+}
+
+func Handler(next http.Handler) http.Handler {
+	return &GzipMiddleware{Next: next}
 }
 
 type gzipResponseWriter struct {
