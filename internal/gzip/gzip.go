@@ -12,6 +12,21 @@ func Handler(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
+
+		reader, err := gzip.NewReader(r.Body)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		defer func(reader *gzip.Reader) {
+			err := reader.Close()
+			if err != nil {
+				panic(err)
+			}
+		}(reader)
+
+		r.Body = reader
+		next.ServeHTTP(w, r)
 	})
 }
 
