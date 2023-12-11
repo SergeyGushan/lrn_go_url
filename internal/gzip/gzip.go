@@ -11,7 +11,7 @@ type GzipMiddleware struct {
 }
 
 func (gm *GzipMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+	if !strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 		gm.Next.ServeHTTP(w, r)
 		return
 	}
