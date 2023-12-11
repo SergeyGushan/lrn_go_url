@@ -28,8 +28,7 @@ func (gm *GzipMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}(&writer)
 
-	r.Header.Del("Accept-Encoding")
-	r.Header.Add("Content-Encoding", "gzip")
+	r.Header.Add("Accept-Encoding", "gzip")
 
 	gm.Next.ServeHTTP(writer, r)
 }
