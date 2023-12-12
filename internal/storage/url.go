@@ -33,8 +33,8 @@ func (s *URL) Push(key, value string) {
 	// Создание новой записи и сохранение в файл
 	record := &Record{
 		UUID:        0, // Используйте соответствующий UUID
-		ShortUrl:    key,
-		OriginalUrl: value,
+		ShortURL:    key,
+		OriginalURL: value,
 	}
 
 	// Сохранение в файл
@@ -56,7 +56,7 @@ func (s *URL) LoadFromFile(fileName string) error {
 
 	// Заполнение URL.Urls
 	for _, record := range s.Record.Items {
-		s.Urls[record.ShortUrl] = record.OriginalUrl
+		s.Urls[record.ShortURL] = record.OriginalURL
 	}
 
 	return nil

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/caarlos0/env/v6"
 	"log"
+	"os"
 )
 
 type Options struct {
@@ -18,7 +19,7 @@ func SetOptions() {
 
 	flag.StringVar(&Opt.ServerAddress, "a", "localhost:8080", "server address")
 	flag.StringVar(&Opt.BaseURL, "b", "http://localhost:8080", "base url")
-	flag.StringVar(&Opt.FileStoragePath, "f", "/tmp/short-url-db.json", "base url")
+	flag.StringVar(&Opt.FileStoragePath, "f", os.TempDir()+"/short-url-db.json", "base url")
 	flag.Parse()
 
 	err := env.Parse(&Opt)
