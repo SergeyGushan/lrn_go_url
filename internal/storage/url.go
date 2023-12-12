@@ -44,10 +44,6 @@ func (s *URL) Push(key, value string) {
 }
 
 func (s *URL) GetByKey(key string) (string, bool) {
-
-	for key := range s.Urls {
-		println(key)
-	}
 	value, exists := s.Urls[key]
 	return value, exists
 }
