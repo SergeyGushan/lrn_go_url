@@ -6,11 +6,11 @@ import (
 	"strings"
 )
 
-type GzipMiddleware struct {
+type Middleware struct {
 	Next http.Handler
 }
 
-func (gm *GzipMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (gm *Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 		gm.Next.ServeHTTP(w, r)
 		return
@@ -34,7 +34,7 @@ func (gm *GzipMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func Handler(next http.Handler) http.Handler {
-	return &GzipMiddleware{Next: next}
+	return &Middleware{Next: next}
 }
 
 type gzipResponseWriter struct {
