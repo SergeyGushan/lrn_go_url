@@ -1,19 +1,25 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/SergeyGushan/lrn_go_url/cmd/config"
 	"github.com/SergeyGushan/lrn_go_url/internal/storage"
+	"github.com/SergeyGushan/lrn_go_url/internal/urlhandlers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
 
+var fileName = os.TempDir() + "/test.log"
+
 func Test_saveUrl(t *testing.T) {
 	dataValue := "https://github.com/SergeyGushan"
+	storage.URLStore, _ = storage.NewURL(fileName)
 
 	ts := httptest.NewServer(URLRouter())
 	defer ts.Close()
@@ -30,9 +36,36 @@ func Test_saveUrl(t *testing.T) {
 		require.NoError(t, err)
 	}()
 }
+
+func Test_shortUrl(t *testing.T) {
+	structRes := urlhandlers.StructReq{}
+	storage.URLStore, _ = storage.NewURL(fileName)
+	structRes.URL = "https://github.com/SergeyGushan"
+	respJSON, err := json.Marshal(structRes)
+	if err != nil {
+		return
+	}
+
+	ts := httptest.NewServer(URLRouter())
+	defer ts.Close()
+
+	requestPost, shortURL := testRequest(t, ts, http.MethodPost, "/api/shorten", string(respJSON), false)
+
+	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
+	fullURL, hasURL := storage.URLStore.GetByKey(shortURL)
+	assert.Equal(t, hasURL, true)
+	assert.Equal(t, fullURL, structRes.URL)
+
+	defer func() {
+		err := requestPost.Body.Close()
+		require.NoError(t, err)
+	}()
+}
+
 func Test_getUrl(t *testing.T) {
 	shortURL := "/MeQpwyse"
 	dataValue := "https://github.com/SergeyGushan"
+	storage.URLStore, _ = storage.NewURL(fileName)
 	storage.URLStore.Push(config.Opt.BaseURL+shortURL, dataValue)
 
 	ts := httptest.NewServer(URLRouter())
@@ -53,6 +86,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body st
 
 	var req *http.Request
 	var err error
+	var structReq urlhandlers.StructRes
 
 	if len(body) > 0 {
 		req, err = http.NewRequest(method, ts.URL+path, strings.NewReader(body))
@@ -74,6 +108,14 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body st
 
 	respBody, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
+
+	if resp.Header.Get("Content-Type") == "application/json" {
+		if err = json.Unmarshal(respBody, &structReq); err != nil {
+			panic(err)
+		}
+
+		respBody = []byte(structReq.Result)
+	}
 
 	return resp, string(respBody)
 }
