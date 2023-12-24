@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/SergeyGushan/lrn_go_url/cmd/config"
+	_ "github.com/SergeyGushan/lrn_go_url/internal/database"
 	"github.com/SergeyGushan/lrn_go_url/internal/logger"
 	"github.com/SergeyGushan/lrn_go_url/internal/storage"
 	"github.com/SergeyGushan/lrn_go_url/internal/urlhandlers"
@@ -14,6 +15,7 @@ func URLRouter() chi.Router {
 
 	r.Use(logger.Handler)
 	r.Post("/", urlhandlers.Save)
+	r.Get("/ping", urlhandlers.PingDB)
 	r.Post("/api/shorten", urlhandlers.Shorten)
 	r.Get("/{shortCode}", urlhandlers.Get)
 
@@ -27,7 +29,7 @@ func main() {
 	}
 
 	config.SetOptions()
-
+	println(config.Opt.DatabaseDSN)
 	storage.URLStore, err = storage.NewURL(config.Opt.FileStoragePath)
 	if err != nil {
 		panic(err)

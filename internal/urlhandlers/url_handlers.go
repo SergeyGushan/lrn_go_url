@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/SergeyGushan/lrn_go_url/cmd/config"
+	"github.com/SergeyGushan/lrn_go_url/internal/database"
 	"github.com/SergeyGushan/lrn_go_url/internal/logger"
 	"github.com/SergeyGushan/lrn_go_url/internal/storage"
 	"github.com/go-chi/chi/v5"
@@ -23,6 +24,17 @@ type StructReq struct {
 
 type StructRes struct {
 	Result string `json:"result"`
+}
+
+func PingDB(res http.ResponseWriter, req *http.Request) {
+	err := database.DBClient.Ping()
+
+	if err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	res.WriteHeader(http.StatusOK)
 }
 
 func Save(res http.ResponseWriter, req *http.Request) {
