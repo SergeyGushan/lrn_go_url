@@ -30,7 +30,3 @@ func SetOptions() {
 		log.Fatal(err)
 	}
 }
-
-func init() {
-	SetOptions()
-}

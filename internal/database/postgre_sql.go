@@ -8,7 +8,7 @@ import (
 
 var DBClient *sql.DB
 
-func init() {
+func Connect() {
 
 	var err error
 	DBClient, err = sql.Open("pgx", config.Opt.DatabaseDSN)

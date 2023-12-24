@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/SergeyGushan/lrn_go_url/cmd/config"
-	_ "github.com/SergeyGushan/lrn_go_url/internal/database"
+	db "github.com/SergeyGushan/lrn_go_url/internal/database"
 	"github.com/SergeyGushan/lrn_go_url/internal/logger"
 	"github.com/SergeyGushan/lrn_go_url/internal/storage"
 	"github.com/SergeyGushan/lrn_go_url/internal/urlhandlers"
@@ -27,6 +27,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	config.SetOptions()
+	db.Connect()
+
 	storage.URLStore, err = storage.NewURL(config.Opt.FileStoragePath)
 	if err != nil {
 		panic(err)
