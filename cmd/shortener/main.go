@@ -27,9 +27,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	config.SetOptions()
-	println(config.Opt.DatabaseDSN)
 	storage.URLStore, err = storage.NewURL(config.Opt.FileStoragePath)
 	if err != nil {
 		panic(err)

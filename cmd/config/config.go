@@ -25,7 +25,12 @@ func SetOptions() {
 	flag.Parse()
 
 	err := env.Parse(&Opt)
+
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func init() {
+	SetOptions()
 }
