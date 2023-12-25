@@ -8,7 +8,7 @@ import (
 	"io"
 )
 
-func CreateShortUrl(longURL string) (string, error) {
+func CreateShortURL(longURL string) (string, error) {
 	hash := md5.New()
 	_, err := io.WriteString(hash, longURL)
 	if err != nil {

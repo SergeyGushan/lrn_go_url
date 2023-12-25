@@ -61,8 +61,8 @@ func Save(res http.ResponseWriter, req *http.Request) {
 		panic(err)
 	}
 	longURL := string(body)
-	shortURL, errBuildShortUrl := url.CreateShortUrl(longURL)
-	if errBuildShortUrl != nil {
+	shortURL, errBuildShortURL := url.CreateShortURL(longURL)
+	if errBuildShortURL != nil {
 		return
 	}
 
@@ -103,8 +103,8 @@ func Shorten(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	shortURL, errBuildShortUrl := url.CreateShortUrl(longURL)
-	if errBuildShortUrl != nil {
+	shortURL, errBuildShortURL := url.CreateShortURL(longURL)
+	if errBuildShortURL != nil {
 		return
 	}
 

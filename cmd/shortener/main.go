@@ -24,6 +24,11 @@ func URLRouter() chi.Router {
 }
 
 func init() {
+	err := logger.Initialize("Info")
+	if err != nil {
+		panic(err)
+	}
+
 	config.SetOptions()
 
 	if config.Opt.DatabaseDSN != "" {
@@ -42,16 +47,7 @@ func init() {
 }
 
 func main() {
-	err := logger.Initialize("Info")
-	if err != nil {
-		panic(err)
-	}
-
-	if err != nil {
-		panic(err)
-	}
-
-	err = http.ListenAndServe(config.Opt.ServerAddress, URLRouter())
+	err := http.ListenAndServe(config.Opt.ServerAddress, URLRouter())
 	if err != nil {
 		panic(err)
 	}
