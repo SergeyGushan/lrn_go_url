@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"github.com/SergeyGushan/lrn_go_url/cmd/config"
+	"github.com/SergeyGushan/lrn_go_url/internal/handlers"
 	"github.com/SergeyGushan/lrn_go_url/internal/storage"
-	"github.com/SergeyGushan/lrn_go_url/internal/urlhandlers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -19,7 +19,7 @@ var fileName = os.TempDir() + "/test.log"
 
 func Test_saveUrl(t *testing.T) {
 	dataValue := "https://github.com/SergeyGushan"
-	storage.URLStore, _ = storage.NewURL(fileName)
+	storage.Service, _ = storage.NewStorage()
 
 	ts := httptest.NewServer(URLRouter())
 	defer ts.Close()
@@ -27,8 +27,8 @@ func Test_saveUrl(t *testing.T) {
 	requestPost, shortURL := testRequest(t, ts, http.MethodPost, "/", dataValue, false)
 
 	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
-	fullURL, hasURL := storage.URLStore.GetByKey(shortURL)
-	assert.Equal(t, hasURL, true)
+	fullURL, err := storage.Service.GetOriginalURL(shortURL)
+	assert.NoError(t, err)
 	assert.Equal(t, fullURL, dataValue)
 
 	defer func() {
@@ -38,8 +38,8 @@ func Test_saveUrl(t *testing.T) {
 }
 
 func Test_shortUrl(t *testing.T) {
-	structRes := urlhandlers.StructReq{}
-	storage.URLStore, _ = storage.NewURL(fileName)
+	structRes := handlers.StructReq{}
+	storage.Service, _ = storage.NewStorage()
 	structRes.URL = "https://github.com/SergeyGushan"
 	respJSON, err := json.Marshal(structRes)
 	if err != nil {
@@ -52,8 +52,8 @@ func Test_shortUrl(t *testing.T) {
 	requestPost, shortURL := testRequest(t, ts, http.MethodPost, "/api/shorten", string(respJSON), false)
 
 	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
-	fullURL, hasURL := storage.URLStore.GetByKey(shortURL)
-	assert.Equal(t, hasURL, true)
+	fullURL, err := storage.Service.GetOriginalURL(shortURL)
+	assert.NoError(t, err)
 	assert.Equal(t, fullURL, structRes.URL)
 
 	defer func() {
@@ -65,8 +65,9 @@ func Test_shortUrl(t *testing.T) {
 func Test_getUrl(t *testing.T) {
 	shortURL := "/MeQpwyse"
 	dataValue := "https://github.com/SergeyGushan"
-	storage.URLStore, _ = storage.NewURL(fileName)
-	storage.URLStore.Push(config.Opt.BaseURL+shortURL, dataValue)
+	storage.Service, _ = storage.NewJSONStorage(fileName)
+	err := storage.Service.Save(config.Opt.BaseURL+shortURL, dataValue)
+	assert.NoError(t, err)
 
 	ts := httptest.NewServer(URLRouter())
 	defer ts.Close()
@@ -86,7 +87,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body st
 
 	var req *http.Request
 	var err error
-	var structReq urlhandlers.StructRes
+	var structReq handlers.StructRes
 
 	if len(body) > 0 {
 		req, err = http.NewRequest(method, ts.URL+path, strings.NewReader(body))

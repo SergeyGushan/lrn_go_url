@@ -2,64 +2,72 @@ package storage
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/google/uuid"
 	"os"
 	"strings"
 )
 
 type Record struct {
-	UUID        uint   `json:"uuid"`
+	UUID        string `json:"uuid"`
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 }
 
-type Records struct {
+type JSONStorage struct {
 	file    *os.File
 	encoder *json.Encoder
 	Items   []Record
 }
 
-func (r *Records) New(fileName string) (*Records, error) {
+func NewJSONStorage(fileName string) (*JSONStorage, error) {
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, err
 	}
 
-	data, err := os.ReadFile(fileName)
-
-	if err != nil {
-		panic(err)
-	}
-
-	records := strings.Split(string(data), "\n")
-	var items []Record
-
-	for _, record := range records {
-		event := &Record{}
-		err := json.Unmarshal([]byte(record), event)
-		if err != nil {
-			continue
-		}
-		items = append(items, *event)
-	}
-
-	return &Records{
+	js := &JSONStorage{
 		file:    file,
 		encoder: json.NewEncoder(file),
-		Items:   items,
-	}, nil
+	}
+
+	errLoadFromFile := js.LoadFromFile(fileName)
+
+	if errLoadFromFile != nil {
+		panic(errLoadFromFile)
+	}
+
+	return js, nil
 }
 
-func (r *Records) WriteEvent(record *Record) error {
-	return r.encoder.Encode(&record)
+func (js *JSONStorage) Save(shortURL, originalURL string) error {
+	record := Record{
+		UUID:        uuid.New().String(),
+		ShortURL:    shortURL,
+		OriginalURL: originalURL,
+	}
+
+	js.Items = append(js.Items, record)
+
+	return js.encoder.Encode(&record)
 }
 
-func (r *Records) Close() error {
-	return r.file.Close()
+func (js *JSONStorage) GetOriginalURL(shortURL string) (string, error) {
+	for _, record := range js.Items {
+		if record.ShortURL == shortURL {
+			return record.OriginalURL, nil
+		}
+	}
+
+	return "", fmt.Errorf("URL not found")
 }
 
-func (r *Records) LoadFromFile(fileName string) error {
+func (js *JSONStorage) Close() error {
+	return js.file.Close()
+}
+
+func (js *JSONStorage) LoadFromFile(fileName string) error {
 	data, err := os.ReadFile(fileName)
-
 	if err != nil {
 		return err
 	}
@@ -72,7 +80,7 @@ func (r *Records) LoadFromFile(fileName string) error {
 		if err != nil {
 			continue
 		}
-		r.Items = append(r.Items, *event)
+		js.Items = append(js.Items, *event)
 	}
 
 	return nil

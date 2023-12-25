@@ -2,10 +2,11 @@ package main
 
 import (
 	"github.com/SergeyGushan/lrn_go_url/cmd/config"
-	db "github.com/SergeyGushan/lrn_go_url/internal/database"
+	"github.com/SergeyGushan/lrn_go_url/internal/app/migrations"
+	"github.com/SergeyGushan/lrn_go_url/internal/database"
+	"github.com/SergeyGushan/lrn_go_url/internal/handlers"
 	"github.com/SergeyGushan/lrn_go_url/internal/logger"
 	"github.com/SergeyGushan/lrn_go_url/internal/storage"
-	"github.com/SergeyGushan/lrn_go_url/internal/urlhandlers"
 	"github.com/go-chi/chi/v5"
 	"net/http"
 )
@@ -14,12 +15,30 @@ func URLRouter() chi.Router {
 	r := chi.NewRouter()
 
 	r.Use(logger.Handler)
-	r.Post("/", urlhandlers.Save)
-	r.Get("/ping", urlhandlers.PingDB)
-	r.Post("/api/shorten", urlhandlers.Shorten)
-	r.Get("/{shortCode}", urlhandlers.Get)
+	r.Post("/", handlers.Save)
+	r.Get("/ping", handlers.PingDB)
+	r.Post("/api/shorten", handlers.Shorten)
+	r.Get("/{shortCode}", handlers.Get)
 
 	return r
+}
+
+func init() {
+	config.SetOptions()
+
+	if config.Opt.DatabaseDSN != "" {
+		database.Connect()
+		migrations.Handle()
+		storage.Service = storage.NewDatabaseStorage(database.DBClient)
+		return
+	}
+
+	if config.Opt.FileStoragePath != "" {
+		storage.Service, _ = storage.NewJSONStorage(config.Opt.FileStoragePath)
+		return
+	}
+
+	storage.Service, _ = storage.NewStorage()
 }
 
 func main() {
@@ -28,10 +47,6 @@ func main() {
 		panic(err)
 	}
 
-	config.SetOptions()
-	db.Connect()
-
-	storage.URLStore, err = storage.NewURL(config.Opt.FileStoragePath)
 	if err != nil {
 		panic(err)
 	}

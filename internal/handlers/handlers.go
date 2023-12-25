@@ -1,30 +1,20 @@
-package urlhandlers
+package handlers
 
 import (
 	"bytes"
 	"compress/gzip"
-	"crypto/md5"
-	"crypto/sha1"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/SergeyGushan/lrn_go_url/cmd/config"
 	"github.com/SergeyGushan/lrn_go_url/internal/database"
 	"github.com/SergeyGushan/lrn_go_url/internal/logger"
 	"github.com/SergeyGushan/lrn_go_url/internal/storage"
+	"github.com/SergeyGushan/lrn_go_url/internal/url"
 	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
 	"strings"
 )
-
-type StructReq struct {
-	URL string `json:"url"`
-}
-
-type StructRes struct {
-	Result string `json:"result"`
-}
 
 func PingDB(res http.ResponseWriter, req *http.Request) {
 	err := database.DBClient.Ping()
@@ -42,16 +32,19 @@ func Save(res http.ResponseWriter, req *http.Request) {
 
 	if strings.Contains(req.Header.Get("Content-Encoding"), "gzip") {
 		reader, err := gzip.NewReader(req.Body)
+
 		if err != nil {
 			http.Error(res, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
+
 		defer func(reader *gzip.Reader) {
 			err := reader.Close()
 			if err != nil {
 				panic(err)
 			}
 		}(reader)
+
 		bodyReader = reader
 	}
 
@@ -68,19 +61,17 @@ func Save(res http.ResponseWriter, req *http.Request) {
 		panic(err)
 	}
 	longURL := string(body)
-	logger.Log.Info(longURL)
-	hash := md5.New()
-
-	_, err = io.WriteString(hash, longURL)
-	if err != nil {
+	shortURL, errBuildShortUrl := url.CreateShortUrl(longURL)
+	if errBuildShortUrl != nil {
 		return
 	}
 
-	shortCode := base64.URLEncoding.EncodeToString(hash.Sum(nil))[:8]
-
-	shortURL := fmt.Sprintf("%s/%s", config.Opt.BaseURL, shortCode)
-
-	storage.URLStore.Push(shortURL, longURL)
+	errStorageSave := storage.Service.Save(shortURL, longURL)
+	if errStorageSave != nil {
+		logger.Log.Error(errStorageSave.Error())
+		http.Error(res, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 
 	res.WriteHeader(http.StatusCreated)
 
@@ -112,17 +103,17 @@ func Shorten(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	hash := sha1.New()
-
-	_, err = io.WriteString(hash, longURL)
-	if err != nil {
+	shortURL, errBuildShortUrl := url.CreateShortUrl(longURL)
+	if errBuildShortUrl != nil {
 		return
 	}
 
-	shortCode := base64.URLEncoding.EncodeToString(hash.Sum(nil))[:8]
-	shortURL := fmt.Sprintf("%s/%s", config.Opt.BaseURL, shortCode)
-
-	storage.URLStore.Push(shortURL, longURL)
+	errStorageSave := storage.Service.Save(shortURL, longURL)
+	if errStorageSave != nil {
+		logger.Log.Error(errStorageSave.Error())
+		http.Error(res, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 
 	structRes.Result = shortURL
 	respJSON, err := json.Marshal(structRes)
@@ -137,7 +128,6 @@ func Shorten(res http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		return
 	}
-
 }
 
 func Get(res http.ResponseWriter, req *http.Request) {
@@ -145,13 +135,14 @@ func Get(res http.ResponseWriter, req *http.Request) {
 
 	shortURL := fmt.Sprintf("%s/%s", config.Opt.BaseURL, shortCode)
 
-	url, hasURL := storage.URLStore.GetByKey(shortURL)
-
-	if hasURL {
-		res.Header().Set("Location", url)
-		res.WriteHeader(http.StatusTemporaryRedirect)
+	URL, errStorageGet := storage.Service.GetOriginalURL(shortURL)
+	if errStorageGet != nil {
+		logger.Log.Error(errStorageGet.Error())
+		http.Error(res, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
-	http.Error(res, "Bad Request", http.StatusBadRequest)
+	res.Header().Set("Location", URL)
+	res.WriteHeader(http.StatusTemporaryRedirect)
+	return
 }
