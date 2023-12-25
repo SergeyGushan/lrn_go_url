@@ -19,7 +19,7 @@ var fileName = os.TempDir() + "/test.log"
 
 func Test_saveUrl(t *testing.T) {
 	dataValue := "https://github.com/SergeyGushan"
-	storage.Service, _ = storage.NewJSONStorage(fileName)
+	storage.Service, _ = storage.NewStorage()
 
 	ts := httptest.NewServer(URLRouter())
 	defer ts.Close()
@@ -39,7 +39,7 @@ func Test_saveUrl(t *testing.T) {
 
 func Test_shortUrl(t *testing.T) {
 	structRes := handlers.StructReq{}
-	storage.Service, _ = storage.NewJSONStorage(fileName)
+	storage.Service, _ = storage.NewStorage()
 	structRes.URL = "https://github.com/SergeyGushan"
 	respJSON, err := json.Marshal(structRes)
 	if err != nil {
