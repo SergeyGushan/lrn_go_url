@@ -63,7 +63,7 @@ func (ds *DatabaseStorage) SaveBatch(batch []BatchItem) ([]BatchResult, error) {
 		result, err := tx.Exec("INSERT INTO urls (short_url, original_url) VALUES ($1, $2) ON CONFLICT (original_url) DO NOTHING RETURNING id", item.ShortURL, item.OriginalURL)
 		rowsAffected, _ := result.RowsAffected()
 
-		if rowsAffected != 0 {
+		if rowsAffected == 0 {
 			return nil, &DuplicateError{
 				Field: "originalURL",
 			}
