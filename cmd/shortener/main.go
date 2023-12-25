@@ -23,7 +23,7 @@ func URLRouter() chi.Router {
 	return r
 }
 
-func init() {
+func main() {
 	err := logger.Initialize("Info")
 	if err != nil {
 		panic(err)
@@ -44,10 +44,8 @@ func init() {
 	}
 
 	storage.Service, _ = storage.NewStorage()
-}
 
-func main() {
-	err := http.ListenAndServe(config.Opt.ServerAddress, URLRouter())
+	err = http.ListenAndServe(config.Opt.ServerAddress, URLRouter())
 	if err != nil {
 		panic(err)
 	}
