@@ -145,3 +145,51 @@ func Get(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Location", URL)
 	res.WriteHeader(http.StatusTemporaryRedirect)
 }
+
+func Batch(res http.ResponseWriter, req *http.Request) {
+	var batchReq []storage.BatchItemReq
+	var batch []storage.BatchItem
+	err := json.NewDecoder(req.Body).Decode(&batchReq)
+	if err != nil {
+		logger.Log.Error(err.Error())
+		http.Error(res, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	for _, item := range batchReq {
+		shortURL, errBuildShortURL := url.CreateShortURL(item.OriginalURL)
+		if errBuildShortURL != nil {
+			continue
+		}
+
+		batch = append(batch, storage.BatchItem{
+			CorrelationID: item.CorrelationID,
+			OriginalURL:   item.OriginalURL,
+			ShortURL:      shortURL,
+		})
+	}
+
+	results, err := storage.Service.SaveBatch(batch)
+	if err != nil {
+		logger.Log.Error(err.Error())
+		http.Error(res, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	respJSON, err := json.Marshal(results)
+	if err != nil {
+		logger.Log.Error(err.Error())
+		http.Error(res, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusCreated)
+
+	_, err = res.Write(respJSON)
+	if err != nil {
+		logger.Log.Error(err.Error())
+		http.Error(res, "Bad Request", http.StatusBadRequest)
+		return
+	}
+}

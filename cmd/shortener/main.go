@@ -18,6 +18,7 @@ func URLRouter() chi.Router {
 	r.Post("/", handlers.Save)
 	r.Get("/ping", handlers.PingDB)
 	r.Post("/api/shorten", handlers.Shorten)
+	r.Post("/api/shorten/batch", handlers.Batch)
 	r.Get("/{shortCode}", handlers.Get)
 
 	return r

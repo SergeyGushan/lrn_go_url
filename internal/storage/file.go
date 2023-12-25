@@ -31,7 +31,7 @@ func NewJSONStorage(fileName string) (*JSONStorage, error) {
 		encoder: json.NewEncoder(file),
 	}
 
-	errLoadFromFile := js.LoadFromFile(fileName)
+	errLoadFromFile := js.loadFromFile(fileName)
 
 	if errLoadFromFile != nil {
 		panic(errLoadFromFile)
@@ -62,11 +62,36 @@ func (js *JSONStorage) GetOriginalURL(shortURL string) (string, error) {
 	return "", fmt.Errorf("URL not found")
 }
 
+func (js *JSONStorage) SaveBatch(batch []BatchItem) ([]BatchResult, error) {
+	results := make([]BatchResult, 0, len(batch))
+
+	for _, item := range batch {
+		record := Record{
+			UUID:        item.CorrelationID,
+			ShortURL:    item.ShortURL,
+			OriginalURL: item.OriginalURL,
+		}
+
+		js.Items = append(js.Items, record)
+		err := js.encoder.Encode(&record)
+		if err != nil {
+			return nil, err
+		}
+
+		results = append(results, BatchResult{
+			CorrelationID: item.CorrelationID,
+			ShortURL:      record.ShortURL,
+		})
+	}
+
+	return results, nil
+}
+
 func (js *JSONStorage) Close() error {
 	return js.file.Close()
 }
 
-func (js *JSONStorage) LoadFromFile(fileName string) error {
+func (js *JSONStorage) loadFromFile(fileName string) error {
 	data, err := os.ReadFile(fileName)
 	if err != nil {
 		return err
