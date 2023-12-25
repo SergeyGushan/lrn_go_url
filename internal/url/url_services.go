@@ -12,7 +12,7 @@ func CreateShortURL(longURL string) (string, error) {
 	hash := md5.New()
 	_, err := io.WriteString(hash, longURL)
 	if err != nil {
-		return "", fmt.Errorf("I was unable to create a short hash")
+		return "", fmt.Errorf("i was unable to create a short hash")
 	}
 
 	shortCode := base64.URLEncoding.EncodeToString(hash.Sum(nil))[:8]

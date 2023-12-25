@@ -144,5 +144,4 @@ func Get(res http.ResponseWriter, req *http.Request) {
 
 	res.Header().Set("Location", URL)
 	res.WriteHeader(http.StatusTemporaryRedirect)
-	return
 }
