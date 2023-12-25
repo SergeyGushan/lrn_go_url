@@ -9,6 +9,7 @@ import (
 	"github.com/SergeyGushan/lrn_go_url/internal/storage"
 	"github.com/go-chi/chi/v5"
 	"net/http"
+	"os"
 )
 
 func URLRouter() chi.Router {
@@ -35,15 +36,12 @@ func main() {
 		database.Connect()
 		migrations.Handle()
 		storage.Service = storage.NewDatabaseStorage(database.DBClient)
-		return
-	}
 
-	if config.Opt.FileStoragePath != "" {
-		storage.Service, _ = storage.NewJSONStorage(config.Opt.FileStoragePath)
-		return
+	} else if config.Opt.FileStoragePath != "" {
+		storage.Service, _ = storage.NewJSONStorage(os.TempDir() + config.Opt.FileStoragePath)
+	} else {
+		storage.Service, _ = storage.NewStorage()
 	}
-
-	storage.Service, _ = storage.NewStorage()
 
 	err = http.ListenAndServe(config.Opt.ServerAddress, URLRouter())
 	if err != nil {
