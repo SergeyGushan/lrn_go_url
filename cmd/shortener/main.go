@@ -9,7 +9,6 @@ import (
 	"github.com/SergeyGushan/lrn_go_url/internal/storage"
 	"github.com/go-chi/chi/v5"
 	"net/http"
-	"os"
 )
 
 func URLRouter() chi.Router {
@@ -37,7 +36,7 @@ func main() {
 		migrations.Handle()
 		storage.Service = storage.NewDatabaseStorage(database.DBClient)
 	} else if config.Opt.FileStoragePath != "" {
-		storage.Service, _ = storage.NewJSONStorage(os.TempDir() + config.Opt.FileStoragePath)
+		storage.Service, _ = storage.NewJSONStorage(config.Opt.FileStoragePath)
 	} else {
 		storage.Service, _ = storage.NewStorage()
 	}
