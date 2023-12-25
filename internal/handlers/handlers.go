@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/SergeyGushan/lrn_go_url/cmd/config"
 	"github.com/SergeyGushan/lrn_go_url/internal/database"
@@ -67,6 +68,12 @@ func Save(res http.ResponseWriter, req *http.Request) {
 	}
 
 	errStorageSave := storage.Service.Save(shortURL, longURL)
+	var duplicateError *storage.DuplicateError
+	if errors.As(errStorageSave, &duplicateError) {
+		http.Error(res, "Конфликт: Дублирующая запись", http.StatusConflict)
+		return
+	}
+
 	if errStorageSave != nil {
 		logger.Log.Error(errStorageSave.Error())
 		http.Error(res, "Internal Server Error", http.StatusInternalServerError)
@@ -104,11 +111,19 @@ func Shorten(res http.ResponseWriter, req *http.Request) {
 	}
 
 	shortURL, errBuildShortURL := url.CreateShortURL(longURL)
+
 	if errBuildShortURL != nil {
 		return
 	}
 
 	errStorageSave := storage.Service.Save(shortURL, longURL)
+
+	var duplicateError *storage.DuplicateError
+	if errors.As(errStorageSave, &duplicateError) {
+		http.Error(res, "Конфликт: Дублирующая запись", http.StatusConflict)
+		return
+	}
+
 	if errStorageSave != nil {
 		logger.Log.Error(errStorageSave.Error())
 		http.Error(res, "Internal Server Error", http.StatusInternalServerError)
@@ -170,6 +185,12 @@ func Batch(res http.ResponseWriter, req *http.Request) {
 	}
 
 	results, err := storage.Service.SaveBatch(batch)
+	var duplicateError *storage.DuplicateError
+	if errors.As(err, &duplicateError) {
+		http.Error(res, "Конфликт: Дублирующая запись", http.StatusConflict)
+		return
+	}
+
 	if err != nil {
 		logger.Log.Error(err.Error())
 		http.Error(res, "Bad Request", http.StatusBadRequest)
