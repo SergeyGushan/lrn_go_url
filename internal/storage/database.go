@@ -60,7 +60,7 @@ func (ds *DatabaseStorage) SaveBatch(batch []BatchItem) ([]BatchResult, error) {
 	results := make([]BatchResult, 0, len(batch))
 	for _, item := range batch {
 
-		result, err := tx.Exec("INSERT INTO urls (short_url, original_url) VALUES ($1, $2) ON CONFLICT (original_url) DO NOTHING RETURNING id", item.ShortURL, item.OriginalURL)
+		result, err := tx.Exec("INSERT INTO urls (correlation_id, short_url, original_url) VALUES ($1, $2, $3) ON CONFLICT (original_url) DO NOTHING RETURNING id", item.CorrelationID, item.ShortURL, item.OriginalURL)
 		rowsAffected, _ := result.RowsAffected()
 
 		if rowsAffected == 0 {
