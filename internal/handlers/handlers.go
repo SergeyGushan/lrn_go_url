@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,7 +13,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
-	"strings"
 )
 
 func PingDB(res http.ResponseWriter, req *http.Request) {
@@ -30,24 +28,6 @@ func PingDB(res http.ResponseWriter, req *http.Request) {
 
 func Save(res http.ResponseWriter, req *http.Request) {
 	var bodyReader io.Reader = req.Body
-
-	if strings.Contains(req.Header.Get("Content-Encoding"), "gzip") {
-		reader, err := gzip.NewReader(req.Body)
-
-		if err != nil {
-			http.Error(res, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		defer func(reader *gzip.Reader) {
-			err := reader.Close()
-			if err != nil {
-				panic(err)
-			}
-		}(reader)
-
-		bodyReader = reader
-	}
 
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
