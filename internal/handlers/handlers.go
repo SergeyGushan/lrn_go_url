@@ -18,7 +18,7 @@ import (
 )
 
 func PingDB(res http.ResponseWriter, req *http.Request) {
-	err := database.DBClient.Ping()
+	err := database.Client().Ping()
 
 	if err != nil {
 		res.WriteHeader(http.StatusInternalServerError)

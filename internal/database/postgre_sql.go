@@ -6,13 +6,17 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-var DBClient *sql.DB
+var dbClient *sql.DB
 
 func Connect() {
 
 	var err error
-	DBClient, err = sql.Open("pgx", config.Opt.DatabaseDSN)
+	dbClient, err = sql.Open("pgx", config.Opt.DatabaseDSN)
 	if err != nil {
 		panic(err)
 	}
+}
+
+func Client() *sql.DB {
+	return dbClient
 }

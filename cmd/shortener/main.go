@@ -35,7 +35,7 @@ func main() {
 	if config.Opt.DatabaseDSN != "" {
 		database.Connect()
 		migrations.Handle()
-		storage.Service = storage.NewDatabaseStorage(database.DBClient)
+		storage.Service = storage.NewDatabaseStorage(database.Client())
 	} else if config.Opt.FileStoragePath != "" {
 		storage.Service, _ = storage.NewJSONStorage(config.Opt.FileStoragePath)
 	} else {
