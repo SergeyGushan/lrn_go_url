@@ -175,7 +175,7 @@ func Get(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func Batch(res http.ResponseWriter, req *http.Request) {
+func BatchCreate(res http.ResponseWriter, req *http.Request) {
 	var batchReq []storage.BatchItemReq
 	var batch []storage.BatchItem
 	err := json.NewDecoder(req.Body).Decode(&batchReq)
