@@ -6,6 +6,7 @@ import (
 	"github.com/SergeyGushan/lrn_go_url/internal/database"
 	"github.com/SergeyGushan/lrn_go_url/internal/handlers"
 	"github.com/SergeyGushan/lrn_go_url/internal/logger"
+	"github.com/SergeyGushan/lrn_go_url/internal/middlewares"
 	"github.com/SergeyGushan/lrn_go_url/internal/storage"
 	"github.com/go-chi/chi/v5"
 	"net/http"
@@ -14,7 +15,7 @@ import (
 func URLRouter() chi.Router {
 	r := chi.NewRouter()
 
-	r.Use(logger.Handler)
+	r.Use(middlewares.Logger)
 	r.Post("/", handlers.Save)
 	r.Get("/ping", handlers.PingDB)
 	r.Post("/api/shorten", handlers.Shorten)
