@@ -70,7 +70,11 @@ func Save(res http.ResponseWriter, req *http.Request) {
 	errStorageSave := storage.Service.Save(shortURL, longURL)
 	var duplicateError *storage.DuplicateError
 	if errors.As(errStorageSave, &duplicateError) {
-		http.Error(res, "Конфликт: Дублирующая запись", http.StatusConflict)
+		res.WriteHeader(http.StatusConflict)
+		_, err = res.Write([]byte(duplicateError.ShortURL))
+		if err != nil {
+			return
+		}
 		return
 	}
 
@@ -120,7 +124,16 @@ func Shorten(res http.ResponseWriter, req *http.Request) {
 
 	var duplicateError *storage.DuplicateError
 	if errors.As(errStorageSave, &duplicateError) {
-		http.Error(res, "Конфликт: Дублирующая запись", http.StatusConflict)
+		res.WriteHeader(http.StatusConflict)
+		structRes.Result = duplicateError.ShortURL
+		respJSON, err := json.Marshal(structRes)
+		if err != nil {
+			return
+		}
+		_, err = res.Write(respJSON)
+		if err != nil {
+			return
+		}
 		return
 	}
 
@@ -185,11 +198,6 @@ func Batch(res http.ResponseWriter, req *http.Request) {
 	}
 
 	results, err := storage.Service.SaveBatch(batch)
-	var duplicateError *storage.DuplicateError
-	if errors.As(err, &duplicateError) {
-		http.Error(res, "Конфликт: Дублирующая запись", http.StatusConflict)
-		return
-	}
 
 	if err != nil {
 		logger.Log.Error(err.Error())

@@ -10,7 +10,8 @@ type DatabaseStorage struct {
 }
 
 type DuplicateError struct {
-	Field string
+	Field    string
+	ShortURL string
 }
 
 func (e DuplicateError) Error() string {
@@ -36,7 +37,8 @@ func (ds *DatabaseStorage) Save(shortURL, originalURL string) error {
 
 	if rowsAffected == 0 {
 		return &DuplicateError{
-			Field: "originalURL",
+			Field:    "originalURL",
+			ShortURL: shortURL,
 		}
 	}
 
@@ -60,14 +62,7 @@ func (ds *DatabaseStorage) SaveBatch(batch []BatchItem) ([]BatchResult, error) {
 	results := make([]BatchResult, 0, len(batch))
 	for _, item := range batch {
 
-		result, err := tx.Exec("INSERT INTO urls (correlation_id, short_url, original_url) VALUES ($1, $2, $3) ON CONFLICT (original_url) DO NOTHING RETURNING id", item.CorrelationID, item.ShortURL, item.OriginalURL)
-		rowsAffected, _ := result.RowsAffected()
-
-		if rowsAffected == 0 {
-			return nil, &DuplicateError{
-				Field: "originalURL",
-			}
-		}
+		_, err := tx.Exec("INSERT INTO urls (correlation_id, short_url, original_url) VALUES ($1, $2, $3)", item.CorrelationID, item.ShortURL, item.OriginalURL)
 
 		if err != nil {
 			err := tx.Rollback()
