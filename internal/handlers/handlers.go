@@ -124,6 +124,7 @@ func Shorten(res http.ResponseWriter, req *http.Request) {
 
 	var duplicateError *storage.DuplicateError
 	if errors.As(errStorageSave, &duplicateError) {
+		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusConflict)
 		structRes.Result = duplicateError.ShortURL
 		respJSON, err := json.Marshal(structRes)
