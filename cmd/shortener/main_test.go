@@ -2,9 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/SergeyGushan/lrn_go_url/cmd/config"
+	"github.com/SergeyGushan/lrn_go_url/internal/handlers"
 	"github.com/SergeyGushan/lrn_go_url/internal/storage"
-	"github.com/SergeyGushan/lrn_go_url/internal/urlhandlers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -19,7 +20,7 @@ var fileName = os.TempDir() + "/test.log"
 
 func Test_saveUrl(t *testing.T) {
 	dataValue := "https://github.com/SergeyGushan"
-	storage.URLStore, _ = storage.NewURL(fileName)
+	storage.Service, _ = storage.NewJSONStorage(fileName)
 
 	ts := httptest.NewServer(URLRouter())
 	defer ts.Close()
@@ -27,8 +28,8 @@ func Test_saveUrl(t *testing.T) {
 	requestPost, shortURL := testRequest(t, ts, http.MethodPost, "/", dataValue, false)
 
 	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
-	fullURL, hasURL := storage.URLStore.GetByKey(shortURL)
-	assert.Equal(t, hasURL, true)
+	fullURL, err := storage.Service.GetOriginalURL(shortURL)
+	assert.NoError(t, err)
 	assert.Equal(t, fullURL, dataValue)
 
 	defer func() {
@@ -38,8 +39,8 @@ func Test_saveUrl(t *testing.T) {
 }
 
 func Test_shortUrl(t *testing.T) {
-	structRes := urlhandlers.StructReq{}
-	storage.URLStore, _ = storage.NewURL(fileName)
+	structRes := handlers.StructReq{}
+	storage.Service, _ = storage.NewJSONStorage(fileName)
 	structRes.URL = "https://github.com/SergeyGushan"
 	respJSON, err := json.Marshal(structRes)
 	if err != nil {
@@ -52,8 +53,8 @@ func Test_shortUrl(t *testing.T) {
 	requestPost, shortURL := testRequest(t, ts, http.MethodPost, "/api/shorten", string(respJSON), false)
 
 	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
-	fullURL, hasURL := storage.URLStore.GetByKey(shortURL)
-	assert.Equal(t, hasURL, true)
+	fullURL, err := storage.Service.GetOriginalURL(shortURL)
+	assert.NoError(t, err)
 	assert.Equal(t, fullURL, structRes.URL)
 
 	defer func() {
@@ -65,8 +66,9 @@ func Test_shortUrl(t *testing.T) {
 func Test_getUrl(t *testing.T) {
 	shortURL := "/MeQpwyse"
 	dataValue := "https://github.com/SergeyGushan"
-	storage.URLStore, _ = storage.NewURL(fileName)
-	storage.URLStore.Push(config.Opt.BaseURL+shortURL, dataValue)
+	storage.Service, _ = storage.NewJSONStorage(fileName)
+	err := storage.Service.Save(config.Opt.BaseURL+shortURL, dataValue)
+	assert.NoError(t, err)
 
 	ts := httptest.NewServer(URLRouter())
 	defer ts.Close()
@@ -86,7 +88,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body st
 
 	var req *http.Request
 	var err error
-	var structReq urlhandlers.StructRes
+	var structReq handlers.StructRes
 
 	if len(body) > 0 {
 		req, err = http.NewRequest(method, ts.URL+path, strings.NewReader(body))
@@ -118,4 +120,78 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body st
 	}
 
 	return resp, string(respBody)
+}
+
+func TestGetOriginalURL(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	ds := storage.NewDatabaseStorage(db)
+	rows := sqlmock.NewRows([]string{"original_url"}).AddRow("http://example.com")
+
+	mock.ExpectQuery("SELECT original_url FROM urls WHERE short_url = \\$1").
+		WithArgs("testShortURL").
+		WillReturnRows(rows)
+
+	originalURL, err := ds.GetOriginalURL("testShortURL")
+
+	assert.NoError(t, err)
+	assert.Equal(t, "http://example.com", originalURL)
+
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestSave(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	ds := storage.NewDatabaseStorage(db)
+	mock.ExpectExec("INSERT INTO urls \\(short_url, original_url\\) VALUES \\(\\$1, \\$2\\) ON CONFLICT \\(original_url\\) DO NOTHING").
+		WithArgs("testShortURL", "http://example.com").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	err = ds.Save("testShortURL", "http://example.com")
+
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestSaveBatch(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	ds := storage.NewDatabaseStorage(db)
+	mock.ExpectBegin()
+	mock.ExpectExec("INSERT INTO urls \\(correlation_id, short_url, original_url\\) VALUES \\(\\$1, \\$2, \\$3\\)").
+		WithArgs("correlation1", "testShortURL1", "http://example.com1").
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("INSERT INTO urls \\(correlation_id, short_url, original_url\\) VALUES \\(\\$1, \\$2, \\$3\\)").
+		WithArgs("correlation2", "testShortURL2", "http://example.com2").
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectCommit()
+
+	batch := []storage.BatchItem{
+		{CorrelationID: "correlation1", ShortURL: "testShortURL1", OriginalURL: "http://example.com1"},
+		{CorrelationID: "correlation2", ShortURL: "testShortURL2", OriginalURL: "http://example.com2"},
+	}
+
+	results, err := ds.SaveBatch(batch)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(results))
+	assert.Equal(t, "correlation1", results[0].CorrelationID)
+	assert.Equal(t, "testShortURL1", results[0].ShortURL)
+	assert.Equal(t, "correlation2", results[1].CorrelationID)
+	assert.Equal(t, "testShortURL2", results[1].ShortURL)
+
+	assert.NoError(t, mock.ExpectationsWereMet())
 }

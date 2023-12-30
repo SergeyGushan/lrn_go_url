@@ -1,63 +1,45 @@
 package storage
 
+import "fmt"
+
 type URL struct {
-	Urls   map[string]string
-	Record *Records
+	Urls map[string]string
 }
 
-var URLStore *URL
-
-func NewURL(fileName string) (*URL, error) {
-	record, err := (&Records{}).New(fileName)
-	if err != nil {
-		return nil, err
-	}
-
+func NewStorage() (*URL, error) {
 	url := &URL{
-		Urls:   make(map[string]string),
-		Record: record,
-	}
-
-	// Загрузка записей из файла в URL.Urls
-	if err := url.LoadFromFile(fileName); err != nil {
-		return nil, err
+		Urls: make(map[string]string),
 	}
 
 	return url, nil
 }
 
-func (s *URL) Push(key, value string) {
-	// Добавление записи в URL.Urls
-	s.Urls[key] = value
+func (u *URL) GetOriginalURL(shortURL string) (string, error) {
+	value, exists := u.Urls[shortURL]
 
-	// Создание новой записи и сохранение в файл
-	record := &Record{
-		UUID:        0, // Используйте соответствующий UUID
-		ShortURL:    key,
-		OriginalURL: value,
+	if !exists {
+		return "", fmt.Errorf("shortURL not found")
 	}
-
-	// Сохранение в файл
-	if err := s.Record.WriteEvent(record); err != nil {
-		panic(err) // Обработка ошибки по вашему усмотрению
-	}
+	return value, nil
 }
 
-func (s *URL) GetByKey(key string) (string, bool) {
-	value, exists := s.Urls[key]
-	return value, exists
-}
-
-func (s *URL) LoadFromFile(fileName string) error {
-	// Загрузка записей из файла в URL.Urls
-	if err := s.Record.LoadFromFile(fileName); err != nil {
-		return err
-	}
-
-	// Заполнение URL.Urls
-	for _, record := range s.Record.Items {
-		s.Urls[record.ShortURL] = record.OriginalURL
-	}
-
+func (u *URL) Save(shortURL, originalURL string) error {
+	u.Urls[shortURL] = originalURL
 	return nil
+}
+
+func (u *URL) SaveBatch(batch []BatchItem) ([]BatchResult, error) {
+	results := make([]BatchResult, 0, len(batch))
+
+	for _, item := range batch {
+
+		u.Urls[item.ShortURL] = item.OriginalURL
+
+		results = append(results, BatchResult{
+			CorrelationID: item.CorrelationID,
+			ShortURL:      item.ShortURL,
+		})
+	}
+
+	return results, nil
 }
