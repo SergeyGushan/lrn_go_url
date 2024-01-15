@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"fmt"
-	"github.com/SergeyGushan/lrn_go_url/cmd/config"
 	"io"
 )
 
@@ -17,5 +16,5 @@ func CreateShortURL(longURL string) (string, error) {
 
 	shortCode := base64.URLEncoding.EncodeToString(hash.Sum(nil))[:8]
 
-	return fmt.Sprintf("%s/%s", config.Opt.BaseURL, shortCode), nil
+	return fmt.Sprintf("%s", shortCode), nil
 }

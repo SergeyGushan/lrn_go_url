@@ -126,7 +126,7 @@ func Save(res http.ResponseWriter, req *http.Request) {
 
 	res.WriteHeader(http.StatusCreated)
 
-	_, err = res.Write([]byte(shortURL))
+	_, err = res.Write([]byte(fmt.Sprintf("%s/%s", config.Opt.BaseURL, shortURL)))
 	if err != nil {
 		return
 	}
@@ -190,7 +190,7 @@ func Shorten(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	structRes.Result = shortURL
+	structRes.Result = fmt.Sprintf("%s/%s", config.Opt.BaseURL, shortURL)
 	respJSON, err := json.Marshal(structRes)
 	if err != nil {
 		return

@@ -1,6 +1,9 @@
 package storage
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/SergeyGushan/lrn_go_url/cmd/config"
+)
 
 type URL struct {
 	Urls       map[string]string
@@ -53,7 +56,7 @@ func (u *URL) SaveBatch(batch []BatchItem) ([]BatchResult, error) {
 
 		results = append(results, BatchResult{
 			CorrelationID: item.CorrelationID,
-			ShortURL:      item.ShortURL,
+			ShortURL:      fmt.Sprintf("%s/%s", config.Opt.BaseURL, item.ShortURL),
 		})
 	}
 
@@ -67,7 +70,7 @@ func (u *URL) GetURLByUserID(userID string) []URLSByUserIDResult {
 	if exists {
 		for shortURL, getOriginalURL := range items {
 			results = append(results, URLSByUserIDResult{
-				ShortURL:    shortURL,
+				ShortURL:    fmt.Sprintf("%s/%s", config.Opt.BaseURL, shortURL),
 				OriginalURL: getOriginalURL,
 			})
 		}

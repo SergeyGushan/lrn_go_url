@@ -3,6 +3,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"github.com/SergeyGushan/lrn_go_url/cmd/config"
 	"log"
 	"strings"
 	"sync"
@@ -54,7 +55,7 @@ func (ds *DatabaseStorage) Save(shortURL, originalURL, userID string) error {
 	if rowsAffected == 0 {
 		return &DuplicateError{
 			Field:    "originalURL",
-			ShortURL: shortURL,
+			ShortURL: fmt.Sprintf("%s/%s", config.Opt.BaseURL, shortURL),
 		}
 	}
 
@@ -90,7 +91,7 @@ func (ds *DatabaseStorage) SaveBatch(batch []BatchItem) ([]BatchResult, error) {
 
 		results = append(results, BatchResult{
 			CorrelationID: item.CorrelationID,
-			ShortURL:      item.ShortURL,
+			ShortURL:      fmt.Sprintf("%s/%s", config.Opt.BaseURL, item.ShortURL),
 		})
 	}
 
@@ -128,6 +129,9 @@ func (ds *DatabaseStorage) GetURLByUserID(userID string) []URLSByUserIDResult {
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		result.ShortURL = fmt.Sprintf("%s/%s", config.Opt.BaseURL, result.ShortURL)
+
 		results = append(results, result)
 	}
 

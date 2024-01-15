@@ -3,6 +3,7 @@ package storage
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/SergeyGushan/lrn_go_url/cmd/config"
 	"github.com/google/uuid"
 	"os"
 	"strings"
@@ -45,7 +46,7 @@ func (js *JSONStorage) Save(shortURL, originalURL, userID string) error {
 	record := Record{
 		UUID:        uuid.New().String(),
 		UserID:      userID,
-		ShortURL:    shortURL,
+		ShortURL:    fmt.Sprintf("%s/%s", config.Opt.BaseURL, shortURL),
 		OriginalURL: originalURL,
 	}
 
@@ -83,7 +84,7 @@ func (js *JSONStorage) SaveBatch(batch []BatchItem) ([]BatchResult, error) {
 
 		results = append(results, BatchResult{
 			CorrelationID: item.CorrelationID,
-			ShortURL:      record.ShortURL,
+			ShortURL:      fmt.Sprintf("%s/%s", config.Opt.BaseURL, record.ShortURL),
 		})
 	}
 
@@ -120,7 +121,7 @@ func (js *JSONStorage) GetURLByUserID(userID string) []URLSByUserIDResult {
 	for _, record := range js.Items {
 		if record.UserID == userID {
 			results = append(results, URLSByUserIDResult{
-				ShortURL:    record.ShortURL,
+				ShortURL:    fmt.Sprintf("%s/%s", config.Opt.BaseURL, record.ShortURL),
 				OriginalURL: record.OriginalURL,
 			})
 		}
