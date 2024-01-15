@@ -32,7 +32,15 @@ func Test_saveUrl(t *testing.T) {
 	requestPost, shortURL := testRequest(t, ts, http.MethodPost, "/", dataValue, false)
 
 	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
-	fullURL, err := storage.Service.GetOriginalURL(shortURL)
+
+	parsedURL, err := url.Parse(shortURL)
+	if err != nil {
+		panic(err)
+	}
+
+	pathWithoutSlash := strings.TrimLeft(parsedURL.Path, "/")
+
+	fullURL, err := storage.Service.GetOriginalURL(pathWithoutSlash)
 	assert.NoError(t, err)
 	assert.Equal(t, fullURL, dataValue)
 
@@ -56,12 +64,12 @@ func Test_shortUrl(t *testing.T) {
 
 	requestPost, shortURL := testRequest(t, ts, http.MethodPost, "/api/shorten", string(respJSON), false)
 
+	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
+
 	parsedURL, err := url.Parse(shortURL)
 	if err != nil {
 		panic(err)
 	}
-
-	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
 
 	pathWithoutSlash := strings.TrimLeft(parsedURL.Path, "/")
 	fullURL, err := storage.Service.GetOriginalURL(pathWithoutSlash)
