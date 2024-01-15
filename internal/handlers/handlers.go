@@ -218,7 +218,7 @@ func Get(res http.ResponseWriter, req *http.Request) {
 		res.WriteHeader(http.StatusGone)
 		return
 	}
-	println(errStorageGet.Error())
+
 	if errStorageGet != nil {
 		logger.Log.Error(errStorageGet.Error())
 		http.Error(res, "Bad Request", http.StatusBadRequest)
