@@ -13,7 +13,7 @@ type TokenError struct {
 }
 
 func (e TokenError) Error() string {
-	return fmt.Sprintf("token is not valid")
+	return fmt.Sprint("token is not valid")
 }
 
 type Claims struct {
@@ -21,12 +21,12 @@ type Claims struct {
 	UserID string
 }
 
-func BuildJWTString(userId string) (string, error) {
+func BuildJWTString(userID string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TokenExp)),
 		},
-		UserID: userId,
+		UserID: userID,
 	})
 
 	tokenString, err := token.SignedString([]byte(SecretKey))

@@ -92,6 +92,7 @@ func (ds *DatabaseStorage) GetURLByUserID(userID string) []URLSByUserIDResult {
 	rows, err := ds.db.Query("SELECT short_url, original_url FROM urls WHERE user_id = $1", userID)
 	if err != nil {
 		log.Fatal(err)
+		return results
 	}
 
 	defer func(rows *sql.Rows) {
@@ -100,6 +101,11 @@ func (ds *DatabaseStorage) GetURLByUserID(userID string) []URLSByUserIDResult {
 			log.Fatal(err)
 		}
 	}(rows)
+
+	if rows.Err() != nil {
+		log.Fatal(rows.Err())
+		return results
+	}
 
 	for rows.Next() {
 		var result URLSByUserIDResult
