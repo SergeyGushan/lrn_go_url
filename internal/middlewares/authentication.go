@@ -39,13 +39,13 @@ func getTokenFromCookie(req *http.Request) (string, error) {
 	}
 
 	token := tokenCookie.Value
-	userId, errUserID := authentication.GetUserIDFromJWTString(token)
+	UserID, errUserID := authentication.GetUserIDFromJWTString(token)
 
 	if errUserID != nil {
 		return "", errUserID
 	}
 
-	authentication.User().SetID(userId)
+	authentication.User().SetID(UserID)
 
 	return token, nil
 }
