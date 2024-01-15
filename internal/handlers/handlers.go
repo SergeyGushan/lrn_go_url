@@ -86,7 +86,7 @@ func Save(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	userIDValue := req.Context().Value("userID")
+	userIDValue := req.Context().Value(middlewares.UserIDKey)
 	if userIDValue != nil {
 		userID, ok := userIDValue.(string)
 		if !ok {
@@ -152,7 +152,7 @@ func Shorten(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	userIDValue := req.Context().Value("userID")
+	userIDValue := req.Context().Value(middlewares.UserIDKey)
 	if userIDValue != nil {
 		userID, ok := userIDValue.(string)
 		if !ok {
@@ -229,7 +229,7 @@ func BatchCreate(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	userIDValue := req.Context().Value("userID")
+	userIDValue := req.Context().Value(middlewares.UserIDKey)
 	if userIDValue != nil {
 		userID, ok := userIDValue.(string)
 		if !ok {
