@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/SergeyGushan/lrn_go_url/cmd/config"
+	"github.com/SergeyGushan/lrn_go_url/internal/logger"
 	"log"
 	"strings"
-	"sync"
 )
 
 type DatabaseStorage struct {
@@ -107,7 +107,7 @@ func (ds *DatabaseStorage) GetURLByUserID(userID string) []URLSByUserIDResult {
 	results := make([]URLSByUserIDResult, 0)
 	rows, err := ds.db.Query("SELECT short_url, original_url FROM urls WHERE user_id = $1", userID)
 	if err != nil {
-		log.Fatal(err)
+		logger.Log.Error(err.Error())
 		return results
 	}
 
@@ -119,7 +119,7 @@ func (ds *DatabaseStorage) GetURLByUserID(userID string) []URLSByUserIDResult {
 	}(rows)
 
 	if rows.Err() != nil {
-		log.Fatal(rows.Err())
+		logger.Log.Error(err.Error())
 		return results
 	}
 
@@ -127,7 +127,8 @@ func (ds *DatabaseStorage) GetURLByUserID(userID string) []URLSByUserIDResult {
 		var result URLSByUserIDResult
 		err := rows.Scan(&result.ShortURL, &result.OriginalURL)
 		if err != nil {
-			log.Fatal(err)
+			logger.Log.Error(err.Error())
+			continue
 		}
 
 		result.ShortURL = fmt.Sprintf("%s/%s", config.Opt.BaseURL, result.ShortURL)
@@ -138,7 +139,7 @@ func (ds *DatabaseStorage) GetURLByUserID(userID string) []URLSByUserIDResult {
 	return results
 }
 
-func (ds *DatabaseStorage) DeleteURLS(urls []string, userID string) {
+func (ds *DatabaseStorage) DeleteURLS(urls []string, userID string, workersCount int) {
 	placeholders := strings.Repeat("$2,", len(urls))
 	if len(urls) > 0 {
 		placeholders = placeholders[:len(placeholders)-1] // Убираем последнюю запятую
@@ -152,27 +153,41 @@ func (ds *DatabaseStorage) DeleteURLS(urls []string, userID string) {
 		return
 	}
 
-	// Создаем канал для передачи URL в fan-in
+	// Создаем канал для передачи URL в пул воркеров
 	updatesCh := make(chan string, len(urls))
 
-	// Функция для ожидания завершения fan-in
-	var wg sync.WaitGroup
-	defer wg.Wait()
+	// Создаем канал для сигнала об окончании работы
+	done := make(chan struct{})
+	defer close(done)
 
-	for _, url := range urls {
-		wg.Add(1)
-		go func(url string) {
-			defer wg.Done()
-			_, err := stmt.Exec(userID, url)
-			if err != nil {
-				println(err.Error())
-			}
-		}(url)
+	// Запускаем пул воркеров
+	for i := 0; i < workersCount; i++ {
+		go worker(updatesCh, stmt, userID, done)
 	}
 
+	// Передаем URL-ы в канал
 	for _, url := range urls {
 		updatesCh <- url
 	}
 
-	close(updatesCh) // Закрываем канал после передачи всех URL
+	// Закрываем канал, чтобы завершить работу воркеров
+	close(updatesCh)
+
+	// Ожидаем завершения всех воркеров
+	for i := 0; i < workersCount; i++ {
+		<-done
+	}
+}
+
+func worker(updatesCh <-chan string, stmt *sql.Stmt, userID string, done chan<- struct{}) {
+	defer func() {
+		done <- struct{}{} // Сигнализируем о завершении работы воркера
+	}()
+
+	for url := range updatesCh {
+		_, err := stmt.Exec(userID, url)
+		if err != nil {
+			logger.Log.Error(err.Error())
+		}
+	}
 }
