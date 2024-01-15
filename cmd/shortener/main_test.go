@@ -145,9 +145,9 @@ func TestGetOriginalURL(t *testing.T) {
 	defer db.Close()
 
 	ds := storage.NewDatabaseStorage(db)
-	rows := sqlmock.NewRows([]string{"original_url"}).AddRow("http://example.com")
+	rows := sqlmock.NewRows([]string{"original_url", "is_deleted"}).AddRow("http://example.com", false)
 
-	mock.ExpectQuery("SELECT original_url FROM urls WHERE short_url = \\$1").
+	mock.ExpectQuery("SELECT original_url, is_deleted FROM urls WHERE short_url = \\$1").
 		WithArgs("testShortURL").
 		WillReturnRows(rows)
 
