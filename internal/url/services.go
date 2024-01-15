@@ -16,5 +16,5 @@ func CreateShortURL(longURL string) (string, error) {
 
 	shortCode := base64.URLEncoding.EncodeToString(hash.Sum(nil))[:8]
 
-	return fmt.Sprintf("%s", shortCode), nil
+	return shortCode, nil
 }
