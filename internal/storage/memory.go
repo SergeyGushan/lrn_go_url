@@ -27,6 +27,13 @@ func (u *URL) GetOriginalURL(shortURL string) (string, error) {
 
 func (u *URL) Save(shortURL, originalURL, userID string) error {
 	u.Urls[shortURL] = originalURL
+
+	_, exists := u.UrlsByUser[userID]
+
+	if !exists {
+		u.UrlsByUser[userID] = make(map[string]string)
+	}
+
 	u.UrlsByUser[userID][shortURL] = originalURL
 	return nil
 }
@@ -36,6 +43,12 @@ func (u *URL) SaveBatch(batch []BatchItem) ([]BatchResult, error) {
 
 	for _, item := range batch {
 		u.Urls[item.ShortURL] = item.OriginalURL
+
+		_, exists := u.UrlsByUser[item.UserID]
+		if !exists {
+			u.UrlsByUser[item.UserID] = make(map[string]string)
+		}
+
 		u.UrlsByUser[item.UserID][item.ShortURL] = item.OriginalURL
 
 		results = append(results, BatchResult{
@@ -51,7 +64,7 @@ func (u *URL) GetURLByUserID(userID string) []URLSByUserIDResult {
 	items, exists := u.UrlsByUser[userID]
 	results := make([]URLSByUserIDResult, 0, len(items))
 
-	if !exists {
+	if exists {
 		for shortURL, getOriginalURL := range items {
 			results = append(results, URLSByUserIDResult{
 				ShortURL:    shortURL,
