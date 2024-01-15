@@ -195,8 +195,8 @@ func TestSaveBatch(t *testing.T) {
 	mock.ExpectCommit()
 
 	batch := []storage.BatchItem{
-		{UserID: "", CorrelationID: "correlation1", ShortURL: "/testShortURL1", OriginalURL: "http://example.com1"},
-		{UserID: "", CorrelationID: "correlation2", ShortURL: "/testShortURL2", OriginalURL: "http://example.com2"},
+		{UserID: "", CorrelationID: "correlation1", ShortURL: "testShortURL1", OriginalURL: "http://example.com1"},
+		{UserID: "", CorrelationID: "correlation2", ShortURL: "testShortURL2", OriginalURL: "http://example.com2"},
 	}
 
 	results, err := ds.SaveBatch(batch)
@@ -204,9 +204,9 @@ func TestSaveBatch(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(results))
 	assert.Equal(t, "correlation1", results[0].CorrelationID)
-	assert.Equal(t, "testShortURL1", results[0].ShortURL)
+	assert.Equal(t, "/testShortURL1", results[0].ShortURL)
 	assert.Equal(t, "correlation2", results[1].CorrelationID)
-	assert.Equal(t, "testShortURL2", results[1].ShortURL)
+	assert.Equal(t, "/testShortURL2", results[1].ShortURL)
 
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
