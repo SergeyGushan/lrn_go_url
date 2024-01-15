@@ -151,54 +151,24 @@ func (ds *DatabaseStorage) DeleteURLS(urls []string, userID string) {
 	// Создаем канал для передачи URL в fan-in
 	updatesCh := make(chan string, len(urls))
 
-	// Функция для закрытия канала и ожидания завершения fan-in
-	done := make(chan struct{})
-	defer close(done)
+	// Функция для ожидания завершения fan-in
+	var wg sync.WaitGroup
+	defer wg.Wait()
 
-	go func() {
-		defer close(updatesCh)
-		for url := range fanIn(done, updatesCh) {
-
+	for _, url := range urls {
+		wg.Add(1)
+		go func(url string) {
+			defer wg.Done()
 			_, err := stmt.Exec(userID, url)
 			if err != nil {
 				println(err.Error())
 			}
-		}
-	}()
+		}(url)
+	}
 
 	for _, url := range urls {
 		updatesCh <- url
 	}
-}
 
-func fanIn(done <-chan struct{}, channels ...<-chan string) <-chan string {
-	out := make(chan string)
-	var wg sync.WaitGroup
-
-	fan := func(c <-chan string) {
-		defer wg.Done()
-		for {
-			select {
-			case v, ok := <-c:
-				if !ok {
-					return
-				}
-				out <- v
-			case <-done:
-				return
-			}
-		}
-	}
-
-	wg.Add(len(channels))
-	for _, c := range channels {
-		go fan(c)
-	}
-
-	go func() {
-		wg.Wait()
-		close(out)
-	}()
-
-	return out
+	close(updatesCh) // Закрываем канал после передачи всех URL
 }
