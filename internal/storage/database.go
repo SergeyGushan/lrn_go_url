@@ -169,11 +169,8 @@ func (ds *DatabaseStorage) DeleteURLS(urls []string, userID string) {
 	for _, url := range urls {
 		updatesCh <- url
 	}
-
-	return
 }
 
-// Функция для fan-in
 func fanIn(done <-chan struct{}, channels ...<-chan string) <-chan string {
 	out := make(chan string)
 	var wg sync.WaitGroup
