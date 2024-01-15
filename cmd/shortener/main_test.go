@@ -13,6 +13,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -55,8 +56,15 @@ func Test_shortUrl(t *testing.T) {
 
 	requestPost, shortURL := testRequest(t, ts, http.MethodPost, "/api/shorten", string(respJSON), false)
 
+	parsedURL, err := url.Parse(shortURL)
+	if err != nil {
+		panic(err)
+	}
+
 	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
-	fullURL, err := storage.Service.GetOriginalURL(shortURL)
+
+	pathWithoutSlash := strings.TrimLeft(parsedURL.Path, "/")
+	fullURL, err := storage.Service.GetOriginalURL(pathWithoutSlash)
 	assert.NoError(t, err)
 	assert.Equal(t, fullURL, structRes.URL)
 
