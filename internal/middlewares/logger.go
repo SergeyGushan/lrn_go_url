@@ -3,8 +3,13 @@ package middlewares
 import (
 	"bytes"
 	"fmt"
+	"github.com/SergeyGushan/lrn_go_url/internal/logger"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
+
+	"go.uber.org/zap"
 )
 
 type (
@@ -44,6 +49,8 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 
 func LoggerMiddleware(next http.Handler) http.Handler {
 	logFn := func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
 		responseData := &responseData{
 			status: 0,
 			size:   0,
@@ -57,6 +64,18 @@ func LoggerMiddleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(&lw, r) // внедряем реализацию http.ResponseWriter
 
+		duration := time.Since(start)
+
+		logger.Log.Info("Request",
+			zap.String("uri", r.RequestURI),
+			zap.String("method", r.Method),
+			zap.String("status", strconv.Itoa(responseData.status)),
+			zap.String("duration", duration.String()),
+			zap.String("size", strconv.Itoa(responseData.size)),
+			zap.String("request_headers", headersToString(r.Header)),
+			zap.String("response_headers", headersToString(lw.Header())),
+			zap.String("response_body", buf.String()), // записываем тело ответа из буфера
+		)
 	}
 
 	return http.HandlerFunc(logFn)
