@@ -12,8 +12,8 @@ const TokenKey = "token"
 
 func AuthenticationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		user := &authentication.User{}
-		_, err := getTokenFromCookie(req, user)
+		user := authentication.User{}
+		_, err := getTokenFromCookie(req, &user)
 		var TokenError *authentication.TokenError
 
 		if errors.As(err, &TokenError) {
@@ -22,15 +22,14 @@ func AuthenticationMiddleware(next http.Handler) http.Handler {
 		}
 
 		if err != nil {
-			_, errSetToken := setTokenToCookie(res, user)
+			_, errSetToken := setTokenToCookie(res, &user)
 			if errSetToken != nil {
 				res.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 		}
 
-		userID := user.ID
-		ctx := context.WithValue(req.Context(), "userID", userID)
+		ctx := context.WithValue(req.Context(), "userID", user.ID)
 		req = req.WithContext(ctx)
 		next.ServeHTTP(res, req)
 	})
