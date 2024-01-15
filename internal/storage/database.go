@@ -41,7 +41,7 @@ func (ds *DatabaseStorage) GetOriginalURL(shortURL string) (string, error) {
 	}
 
 	if isDeleted {
-		return "", DeletedError{}
+		return "", &DeletedError{}
 	}
 
 	return originalURL, nil

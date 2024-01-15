@@ -206,19 +206,19 @@ func Shorten(res http.ResponseWriter, req *http.Request) {
 }
 
 func Get(res http.ResponseWriter, req *http.Request) {
+
 	shortCode := chi.URLParam(req, "shortCode")
 
 	shortURL := fmt.Sprintf("%s/%s", config.Opt.BaseURL, shortCode)
 
-	var deletedError *storage.DeletedError
-
 	URL, errStorageGet := storage.Service.GetOriginalURL(shortURL)
+
+	var deletedError *storage.DeletedError
 	if errors.As(errStorageGet, &deletedError) {
-		println(errStorageGet.Error())
 		res.WriteHeader(http.StatusGone)
 		return
 	}
-
+	println(errStorageGet.Error())
 	if errStorageGet != nil {
 		logger.Log.Error(errStorageGet.Error())
 		http.Error(res, "Bad Request", http.StatusBadRequest)
