@@ -118,8 +118,6 @@ func (js *JSONStorage) GetURLByUserID(userID string) []URLSByUserIDResult {
 	results := make([]URLSByUserIDResult, 0)
 
 	for _, record := range js.Items {
-		println(record.UserID)
-		println(userID)
 		if record.UserID == userID {
 			results = append(results, URLSByUserIDResult{
 				ShortURL:    record.ShortURL,

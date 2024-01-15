@@ -2,29 +2,23 @@ package authentication
 
 import "github.com/google/uuid"
 
-type UserStruct struct {
+type User struct {
 	ID string
 }
 
-func (user *UserStruct) SetID(userID string) {
+func (user *User) SetID(userID string) {
 	user.ID = userID
 }
 
-func (user *UserStruct) generateUniqueUserID() {
-	UUID, _ := uuid.NewRandom()
+func (user *User) generateUniqueUserID() {
+	UUID := uuid.New()
 	user.SetID(UUID.String())
 }
 
-func (user *UserStruct) GetID() string {
+func (user *User) GetID() string {
 	if user.ID == "" {
 		user.generateUniqueUserID()
 	}
 
 	return user.ID
-}
-
-var user = &UserStruct{}
-
-func User() *UserStruct {
-	return user
 }
