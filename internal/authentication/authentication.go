@@ -13,7 +13,7 @@ type TokenError struct {
 }
 
 func (e TokenError) Error() string {
-	return fmt.Sprint("token is not valid")
+	return "token is not valid"
 }
 
 type Claims struct {
