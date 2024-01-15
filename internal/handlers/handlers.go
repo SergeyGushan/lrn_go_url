@@ -209,9 +209,7 @@ func Get(res http.ResponseWriter, req *http.Request) {
 
 	shortCode := chi.URLParam(req, "shortCode")
 
-	shortURL := fmt.Sprintf("%s/%s", config.Opt.BaseURL, shortCode)
-
-	URL, errStorageGet := storage.Service.GetOriginalURL(shortURL)
+	URL, errStorageGet := storage.Service.GetOriginalURL(shortCode)
 
 	var deletedError *storage.DeletedError
 	if errors.As(errStorageGet, &deletedError) {

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/SergeyGushan/lrn_go_url/cmd/config"
 	"github.com/SergeyGushan/lrn_go_url/internal/authentication"
 	"github.com/SergeyGushan/lrn_go_url/internal/handlers"
 	"github.com/SergeyGushan/lrn_go_url/internal/middlewares"
@@ -68,19 +67,19 @@ func Test_shortUrl(t *testing.T) {
 }
 
 func Test_getUrl(t *testing.T) {
-	shortURL := "/MeQpwyse"
+	shortURL := "MeQpwyse"
 	dataValue := "https://github.com/SergeyGushan"
 	storage.Service, _ = storage.NewJSONStorage(fileName)
-	err := storage.Service.Save(config.Opt.BaseURL+shortURL, dataValue, "")
+	err := storage.Service.Save(shortURL, dataValue, "")
 	assert.NoError(t, err)
 
 	ts := httptest.NewServer(URLRouter())
 	defer ts.Close()
 
-	response, _ := testRequest(t, ts, http.MethodGet, shortURL, "", true)
+	response, _ := testRequest(t, ts, http.MethodGet, "/"+shortURL, "", true)
 
-	assert.Equal(t, response.StatusCode, http.StatusTemporaryRedirect)
-	assert.Equal(t, response.Header.Get("Location"), dataValue)
+	assert.Equal(t, http.StatusTemporaryRedirect, response.StatusCode)
+	assert.Equal(t, dataValue, response.Header.Get("Location"))
 
 	defer func() {
 		err := response.Body.Close()

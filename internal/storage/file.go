@@ -46,7 +46,7 @@ func (js *JSONStorage) Save(shortURL, originalURL, userID string) error {
 	record := Record{
 		UUID:        uuid.New().String(),
 		UserID:      userID,
-		ShortURL:    fmt.Sprintf("%s/%s", config.Opt.BaseURL, shortURL),
+		ShortURL:    shortURL,
 		OriginalURL: originalURL,
 	}
 
