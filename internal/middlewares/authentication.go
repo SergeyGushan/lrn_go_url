@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const tokenKey = "token"
+const TokenKey = "token"
 
 func AuthenticationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
@@ -32,7 +32,7 @@ func AuthenticationMiddleware(next http.Handler) http.Handler {
 }
 
 func getTokenFromCookie(req *http.Request) (string, error) {
-	tokenCookie, err := req.Cookie(tokenKey)
+	tokenCookie, err := req.Cookie(TokenKey)
 
 	if err != nil {
 		return "", err
@@ -55,7 +55,7 @@ func setTokenToCookie(res http.ResponseWriter) (string, error) {
 
 	if err == nil {
 		http.SetCookie(res, &http.Cookie{
-			Name:    tokenKey,
+			Name:    TokenKey,
 			Value:   token,
 			Expires: time.Now().Add(authentication.TokenExp),
 			Path:    "/",

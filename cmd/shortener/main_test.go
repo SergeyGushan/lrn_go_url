@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/SergeyGushan/lrn_go_url/cmd/config"
+	"github.com/SergeyGushan/lrn_go_url/internal/authentication"
 	"github.com/SergeyGushan/lrn_go_url/internal/handlers"
+	"github.com/SergeyGushan/lrn_go_url/internal/middlewares"
 	"github.com/SergeyGushan/lrn_go_url/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,6 +16,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 var fileName = os.TempDir() + "/test.log"
@@ -105,6 +108,17 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body st
 		}
 	}
 
+	token, err := authentication.BuildJWTString(authentication.User().GetID())
+
+	if err == nil {
+		req.AddCookie(&http.Cookie{
+			Name:    middlewares.TokenKey,
+			Value:   token,
+			Expires: time.Now().Add(authentication.TokenExp),
+			Path:    "/",
+		})
+	}
+
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 
@@ -152,8 +166,8 @@ func TestSave(t *testing.T) {
 	defer db.Close()
 
 	ds := storage.NewDatabaseStorage(db)
-	mock.ExpectExec("INSERT INTO urls \\(short_url, original_url\\) VALUES \\(\\$1, \\$2\\) ON CONFLICT \\(original_url\\) DO NOTHING").
-		WithArgs("testShortURL", "http://example.com").
+	mock.ExpectExec("INSERT INTO urls \\(user_id, short_url, original_url\\) VALUES \\(\\$1, \\$2, \\$3\\) ON CONFLICT \\(original_url\\) DO NOTHING").
+		WithArgs("", "testShortURL", "http://example.com").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	err = ds.Save("testShortURL", "http://example.com", "")
@@ -171,17 +185,17 @@ func TestSaveBatch(t *testing.T) {
 
 	ds := storage.NewDatabaseStorage(db)
 	mock.ExpectBegin()
-	mock.ExpectExec("INSERT INTO urls \\(correlation_id, short_url, original_url\\) VALUES \\(\\$1, \\$2, \\$3\\)").
-		WithArgs("correlation1", "testShortURL1", "http://example.com1").
+	mock.ExpectExec("INSERT INTO urls \\(user_id, correlation_id, short_url, original_url\\) VALUES \\(\\$1, \\$2, \\$3, \\$4\\)").
+		WithArgs("", "correlation1", "testShortURL1", "http://example.com1").
 		WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec("INSERT INTO urls \\(correlation_id, short_url, original_url\\) VALUES \\(\\$1, \\$2, \\$3\\)").
-		WithArgs("correlation2", "testShortURL2", "http://example.com2").
+	mock.ExpectExec("INSERT INTO urls \\(user_id, correlation_id, short_url, original_url\\) VALUES \\(\\$1, \\$2, \\$3, \\$4\\)").
+		WithArgs("", "correlation2", "testShortURL2", "http://example.com2").
 		WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectCommit()
 
 	batch := []storage.BatchItem{
-		{CorrelationID: "correlation1", ShortURL: "testShortURL1", OriginalURL: "http://example.com1"},
-		{CorrelationID: "correlation2", ShortURL: "testShortURL2", OriginalURL: "http://example.com2"},
+		{UserID: "", CorrelationID: "correlation1", ShortURL: "testShortURL1", OriginalURL: "http://example.com1"},
+		{UserID: "", CorrelationID: "correlation2", ShortURL: "testShortURL2", OriginalURL: "http://example.com2"},
 	}
 
 	results, err := ds.SaveBatch(batch)
