@@ -3,6 +3,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"log"
 )
 
 type DatabaseStorage struct {
@@ -31,8 +32,8 @@ func (ds *DatabaseStorage) GetOriginalURL(shortURL string) (string, error) {
 	return originalURL, nil
 }
 
-func (ds *DatabaseStorage) Save(shortURL, originalURL string) error {
-	result, err := ds.db.Exec("INSERT INTO urls (short_url, original_url) VALUES ($1, $2) ON CONFLICT (original_url) DO NOTHING RETURNING id", shortURL, originalURL)
+func (ds *DatabaseStorage) Save(shortURL, originalURL, userID string) error {
+	result, err := ds.db.Exec("INSERT INTO urls (user_id, short_url, original_url) VALUES ($1, $2, $3) ON CONFLICT (original_url) DO NOTHING RETURNING id", userID, shortURL, originalURL)
 	rowsAffected, _ := result.RowsAffected()
 
 	if rowsAffected == 0 {
@@ -62,7 +63,7 @@ func (ds *DatabaseStorage) SaveBatch(batch []BatchItem) ([]BatchResult, error) {
 	results := make([]BatchResult, 0, len(batch))
 	for _, item := range batch {
 
-		_, err := tx.Exec("INSERT INTO urls (correlation_id, short_url, original_url) VALUES ($1, $2, $3)", item.CorrelationID, item.ShortURL, item.OriginalURL)
+		_, err := tx.Exec("INSERT INTO urls (user_id, correlation_id, short_url, original_url) VALUES ($1, $2, $3, $4)", item.UserID, item.CorrelationID, item.ShortURL, item.OriginalURL)
 
 		if err != nil {
 			err := tx.Rollback()
@@ -84,4 +85,30 @@ func (ds *DatabaseStorage) SaveBatch(batch []BatchItem) ([]BatchResult, error) {
 	}
 
 	return results, nil
+}
+
+func (ds *DatabaseStorage) GetURLByUserID(userID string) []URLSByUserIDResult {
+	results := make([]URLSByUserIDResult, 0)
+	rows, err := ds.db.Query("SELECT short_url, original_url FROM urls WHERE user_id = $1", userID)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(rows)
+
+	for rows.Next() {
+		var result URLSByUserIDResult
+		err := rows.Scan(&result.ShortURL, &result.OriginalURL)
+		if err != nil {
+			log.Fatal(err)
+		}
+		results = append(results, result)
+	}
+
+	return results
 }

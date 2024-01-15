@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/SergeyGushan/lrn_go_url/cmd/config"
+	"github.com/SergeyGushan/lrn_go_url/internal/authentication"
 	"github.com/SergeyGushan/lrn_go_url/internal/database"
 	"github.com/SergeyGushan/lrn_go_url/internal/logger"
 	"github.com/SergeyGushan/lrn_go_url/internal/storage"
@@ -14,6 +15,31 @@ import (
 	"io"
 	"net/http"
 )
+
+func UserUrls(res http.ResponseWriter, req *http.Request) {
+	urls := storage.Service.GetURLByUserID(authentication.User().ID)
+
+	if len(urls) == 0 {
+		http.Error(res, "No Content", http.StatusNoContent)
+		return
+	}
+
+	respJSON, err := json.Marshal(urls)
+	if err != nil {
+		logger.Log.Error(err.Error())
+		http.Error(res, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+
+	_, err = res.Write(respJSON)
+	if err != nil {
+		logger.Log.Error(err.Error())
+		http.Error(res, "Bad Request", http.StatusBadRequest)
+		return
+	}
+}
 
 func PingDB(res http.ResponseWriter, req *http.Request) {
 	err := database.Client().Ping()
@@ -47,7 +73,8 @@ func Save(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	errStorageSave := storage.Service.Save(shortURL, longURL)
+	user := authentication.User()
+	errStorageSave := storage.Service.Save(shortURL, longURL, user.ID)
 	var duplicateError *storage.DuplicateError
 	if errors.As(errStorageSave, &duplicateError) {
 		res.WriteHeader(http.StatusConflict)
@@ -100,7 +127,9 @@ func Shorten(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	errStorageSave := storage.Service.Save(shortURL, longURL)
+	user := authentication.User()
+
+	errStorageSave := storage.Service.Save(shortURL, longURL, user.ID)
 
 	var duplicateError *storage.DuplicateError
 	if errors.As(errStorageSave, &duplicateError) {
@@ -165,6 +194,8 @@ func BatchCreate(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	user := authentication.User()
+
 	for _, item := range batchReq {
 		shortURL, errBuildShortURL := url.CreateShortURL(item.OriginalURL)
 		if errBuildShortURL != nil {
@@ -172,6 +203,7 @@ func BatchCreate(res http.ResponseWriter, req *http.Request) {
 		}
 
 		batch = append(batch, storage.BatchItem{
+			UserID:        user.ID,
 			CorrelationID: item.CorrelationID,
 			OriginalURL:   item.OriginalURL,
 			ShortURL:      shortURL,

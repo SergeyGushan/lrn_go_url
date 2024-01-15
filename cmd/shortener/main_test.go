@@ -67,7 +67,7 @@ func Test_getUrl(t *testing.T) {
 	shortURL := "/MeQpwyse"
 	dataValue := "https://github.com/SergeyGushan"
 	storage.Service, _ = storage.NewJSONStorage(fileName)
-	err := storage.Service.Save(config.Opt.BaseURL+shortURL, dataValue)
+	err := storage.Service.Save(config.Opt.BaseURL+shortURL, dataValue, "")
 	assert.NoError(t, err)
 
 	ts := httptest.NewServer(URLRouter())
@@ -156,7 +156,7 @@ func TestSave(t *testing.T) {
 		WithArgs("testShortURL", "http://example.com").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err = ds.Save("testShortURL", "http://example.com")
+	err = ds.Save("testShortURL", "http://example.com", "")
 
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())

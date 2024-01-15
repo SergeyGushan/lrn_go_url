@@ -15,11 +15,13 @@ import (
 func URLRouter() chi.Router {
 	r := chi.NewRouter()
 
+	r.Use(middlewares.AuthenticationMiddleware)
 	r.Use(middlewares.GzipMiddleware)
 	r.Use(middlewares.LoggerMiddleware)
 
 	r.Post("/", handlers.Save)
 	r.Get("/ping", handlers.PingDB)
+	r.Get("/api/user/urls", handlers.UserUrls)
 	r.Post("/api/shorten", handlers.Shorten)
 	r.Post("/api/shorten/batch", handlers.BatchCreate)
 	r.Get("/{shortCode}", handlers.Get)
