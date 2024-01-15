@@ -8,6 +8,7 @@ import (
 	"github.com/SergeyGushan/lrn_go_url/cmd/config"
 	"github.com/SergeyGushan/lrn_go_url/internal/database"
 	"github.com/SergeyGushan/lrn_go_url/internal/logger"
+	"github.com/SergeyGushan/lrn_go_url/internal/middlewares"
 	"github.com/SergeyGushan/lrn_go_url/internal/storage"
 	"github.com/SergeyGushan/lrn_go_url/internal/url"
 	"github.com/go-chi/chi/v5"
@@ -16,7 +17,7 @@ import (
 )
 
 func UserUrls(res http.ResponseWriter, req *http.Request) {
-	userIDValue := req.Context().Value("userID")
+	userIDValue := req.Context().Value(middlewares.UserIDKey)
 
 	if userIDValue != nil {
 		userID, ok := userIDValue.(string)
