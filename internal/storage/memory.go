@@ -75,3 +75,7 @@ func (u *URL) GetURLByUserID(userID string) []URLSByUserIDResult {
 
 	return results
 }
+
+func (u *URL) DeleteURLS(urls []string, userID string) {
+
+}

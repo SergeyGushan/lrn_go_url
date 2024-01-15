@@ -5,6 +5,7 @@ type URLStorage interface {
 	Save(shortURL, originalURL, userID string) error
 	SaveBatch(batch []BatchItem) ([]BatchResult, error)
 	GetURLByUserID(userID string) []URLSByUserIDResult
+	DeleteURLS(urls []string, userID string)
 }
 
 var Service URLStorage

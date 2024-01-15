@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
+	"sync"
 )
 
 type DatabaseStorage struct {
@@ -19,16 +21,29 @@ func (e DuplicateError) Error() string {
 	return fmt.Sprintf("%s already exists", e.Field)
 }
 
+type DeletedError struct {
+}
+
+func (e DeletedError) Error() string { return "url deleted" }
+
 func NewDatabaseStorage(db *sql.DB) *DatabaseStorage {
 	return &DatabaseStorage{db: db}
 }
 
 func (ds *DatabaseStorage) GetOriginalURL(shortURL string) (string, error) {
 	var originalURL string
-	err := ds.db.QueryRow("SELECT original_url FROM urls WHERE short_url = $1", shortURL).Scan(&originalURL)
+	var isDeleted bool
+
+	err := ds.db.QueryRow("SELECT original_url, is_deleted FROM urls WHERE short_url = $1", shortURL).Scan(&originalURL, &isDeleted)
+
 	if err != nil {
 		return "", fmt.Errorf("shortURL not found")
 	}
+
+	if isDeleted {
+		return "", DeletedError{}
+	}
+
 	return originalURL, nil
 }
 
@@ -117,4 +132,76 @@ func (ds *DatabaseStorage) GetURLByUserID(userID string) []URLSByUserIDResult {
 	}
 
 	return results
+}
+
+func (ds *DatabaseStorage) DeleteURLS(urls []string, userID string) {
+	placeholders := strings.Repeat("$2,", len(urls))
+	if len(urls) > 0 {
+		placeholders = placeholders[:len(placeholders)-1] // Убираем последнюю запятую
+	}
+
+	query := fmt.Sprintf("UPDATE urls SET is_deleted = true WHERE short_url IN (%s) AND user_id = $1;", placeholders)
+
+	// Готовим запрос
+	stmt, err := ds.db.Prepare(query)
+	if err != nil {
+		return
+	}
+
+	// Создаем канал для передачи URL в fan-in
+	updatesCh := make(chan string, len(urls))
+
+	// Функция для закрытия канала и ожидания завершения fan-in
+	done := make(chan struct{})
+	defer close(done)
+
+	go func() {
+		defer close(updatesCh)
+		for url := range fanIn(done, updatesCh) {
+
+			_, err := stmt.Exec(userID, url)
+			if err != nil {
+				println(err.Error())
+			}
+		}
+	}()
+
+	for _, url := range urls {
+		updatesCh <- url
+	}
+
+	return
+}
+
+// Функция для fan-in
+func fanIn(done <-chan struct{}, channels ...<-chan string) <-chan string {
+	out := make(chan string)
+	var wg sync.WaitGroup
+
+	fan := func(c <-chan string) {
+		defer wg.Done()
+		for {
+			select {
+			case v, ok := <-c:
+				if !ok {
+					return
+				}
+				out <- v
+			case <-done:
+				return
+			}
+		}
+	}
+
+	wg.Add(len(channels))
+	for _, c := range channels {
+		go fan(c)
+	}
+
+	go func() {
+		wg.Wait()
+		close(out)
+	}()
+
+	return out
 }

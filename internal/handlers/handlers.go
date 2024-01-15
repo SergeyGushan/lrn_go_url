@@ -16,40 +16,55 @@ import (
 	"net/http"
 )
 
-func UserUrls(res http.ResponseWriter, req *http.Request) {
-	userIDValue := req.Context().Value(middlewares.UserIDKey)
-
-	if userIDValue != nil {
-		userID, ok := userIDValue.(string)
-		if !ok {
-			http.Error(res, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		urls := storage.Service.GetURLByUserID(userID)
-
-		if len(urls) == 0 {
-			http.Error(res, "No Content", http.StatusNoContent)
-			return
-		}
-
-		respJSON, err := json.Marshal(urls)
-		if err != nil {
-			logger.Log.Error(err.Error())
-			http.Error(res, "Bad Request", http.StatusBadRequest)
-			return
-		}
-
-		res.Header().Set("Content-Type", "application/json")
-
-		_, err = res.Write(respJSON)
-		if err != nil {
-			logger.Log.Error(err.Error())
-			http.Error(res, "Bad Request", http.StatusBadRequest)
-			return
-		}
-	} else {
+func DeleteUserUrls(res http.ResponseWriter, req *http.Request) {
+	userID, errUserID := getUserID(res, req.Context().Value(middlewares.UserIDKey))
+	if errUserID != nil {
 		http.Error(res, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var urls []string
+
+	err := json.NewDecoder(req.Body).Decode(&urls)
+	if err != nil {
+		logger.Log.Error(err.Error())
+		http.Error(res, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	storage.Service.DeleteURLS(urls, userID)
+
+	res.WriteHeader(http.StatusAccepted)
+}
+
+func UserUrls(res http.ResponseWriter, req *http.Request) {
+
+	userID, err := getUserID(res, req.Context().Value(middlewares.UserIDKey))
+	if err != nil {
+		http.Error(res, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	urls := storage.Service.GetURLByUserID(userID)
+
+	if len(urls) == 0 {
+		http.Error(res, "No Content", http.StatusNoContent)
+		return
+	}
+
+	respJSON, err := json.Marshal(urls)
+	if err != nil {
+		logger.Log.Error(err.Error())
+		http.Error(res, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+
+	_, err = res.Write(respJSON)
+	if err != nil {
+		logger.Log.Error(err.Error())
+		http.Error(res, "Bad Request", http.StatusBadRequest)
 		return
 	}
 }
@@ -86,42 +101,35 @@ func Save(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	userIDValue := req.Context().Value(middlewares.UserIDKey)
-	if userIDValue != nil {
-		userID, ok := userIDValue.(string)
-		if !ok {
-			http.Error(res, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		errStorageSave := storage.Service.Save(shortURL, longURL, userID)
-		var duplicateError *storage.DuplicateError
-		if errors.As(errStorageSave, &duplicateError) {
-			res.WriteHeader(http.StatusConflict)
-			_, err = res.Write([]byte(duplicateError.ShortURL))
-			if err != nil {
-				return
-			}
-			return
-		}
-
-		if errStorageSave != nil {
-			logger.Log.Error(errStorageSave.Error())
-			http.Error(res, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		res.WriteHeader(http.StatusCreated)
-
-		_, err = res.Write([]byte(shortURL))
-		if err != nil {
-			return
-		}
-	} else {
+	userID, err := getUserID(res, req.Context().Value(middlewares.UserIDKey))
+	if err != nil {
 		http.Error(res, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
+	errStorageSave := storage.Service.Save(shortURL, longURL, userID)
+	var duplicateError *storage.DuplicateError
+	if errors.As(errStorageSave, &duplicateError) {
+		res.WriteHeader(http.StatusConflict)
+		_, err = res.Write([]byte(duplicateError.ShortURL))
+		if err != nil {
+			return
+		}
+		return
+	}
+
+	if errStorageSave != nil {
+		logger.Log.Error(errStorageSave.Error())
+		http.Error(res, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	res.WriteHeader(http.StatusCreated)
+
+	_, err = res.Write([]byte(shortURL))
+	if err != nil {
+		return
+	}
 }
 
 func Shorten(res http.ResponseWriter, req *http.Request) {
@@ -152,53 +160,47 @@ func Shorten(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	userIDValue := req.Context().Value(middlewares.UserIDKey)
-	if userIDValue != nil {
-		userID, ok := userIDValue.(string)
-		if !ok {
-			http.Error(res, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
+	userID, err := getUserID(res, req.Context().Value(middlewares.UserIDKey))
+	if err != nil {
+		http.Error(res, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
-		errStorageSave := storage.Service.Save(shortURL, longURL, userID)
+	errStorageSave := storage.Service.Save(shortURL, longURL, userID)
 
-		var duplicateError *storage.DuplicateError
-		if errors.As(errStorageSave, &duplicateError) {
-			res.Header().Set("Content-Type", "application/json")
-			res.WriteHeader(http.StatusConflict)
-			structRes.Result = duplicateError.ShortURL
-			respJSON, err := json.Marshal(structRes)
-			if err != nil {
-				return
-			}
-			_, err = res.Write(respJSON)
-			if err != nil {
-				return
-			}
-			return
-		}
-
-		if errStorageSave != nil {
-			logger.Log.Error(errStorageSave.Error())
-			http.Error(res, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		structRes.Result = shortURL
+	var duplicateError *storage.DuplicateError
+	if errors.As(errStorageSave, &duplicateError) {
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusConflict)
+		structRes.Result = duplicateError.ShortURL
 		respJSON, err := json.Marshal(structRes)
 		if err != nil {
 			return
 		}
-
-		res.Header().Set("Content-Type", "application/json")
-		res.WriteHeader(http.StatusCreated)
-
 		_, err = res.Write(respJSON)
 		if err != nil {
 			return
 		}
-	} else {
-		http.Error(res, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if errStorageSave != nil {
+		logger.Log.Error(errStorageSave.Error())
+		http.Error(res, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	structRes.Result = shortURL
+	respJSON, err := json.Marshal(structRes)
+	if err != nil {
+		return
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusCreated)
+
+	_, err = res.Write(respJSON)
+	if err != nil {
 		return
 	}
 }
@@ -208,7 +210,15 @@ func Get(res http.ResponseWriter, req *http.Request) {
 
 	shortURL := fmt.Sprintf("%s/%s", config.Opt.BaseURL, shortCode)
 
+	var deletedError *storage.DeletedError
+
 	URL, errStorageGet := storage.Service.GetOriginalURL(shortURL)
+	if errors.As(errStorageGet, &deletedError) {
+		println(errStorageGet.Error())
+		res.WriteHeader(http.StatusGone)
+		return
+	}
+
 	if errStorageGet != nil {
 		logger.Log.Error(errStorageGet.Error())
 		http.Error(res, "Bad Request", http.StatusBadRequest)
@@ -220,6 +230,12 @@ func Get(res http.ResponseWriter, req *http.Request) {
 }
 
 func BatchCreate(res http.ResponseWriter, req *http.Request) {
+	userID, errUserID := getUserID(res, req.Context().Value(middlewares.UserIDKey))
+	if errUserID != nil {
+		http.Error(res, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	var batchReq []storage.BatchItemReq
 	var batch []storage.BatchItem
 	err := json.NewDecoder(req.Body).Decode(&batchReq)
@@ -229,54 +245,53 @@ func BatchCreate(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	userIDValue := req.Context().Value(middlewares.UserIDKey)
-	if userIDValue != nil {
-		userID, ok := userIDValue.(string)
-		if !ok {
-			http.Error(res, "Internal Server Error", http.StatusInternalServerError)
-			return
+	for _, item := range batchReq {
+		shortURL, errBuildShortURL := url.CreateShortURL(item.OriginalURL)
+		if errBuildShortURL != nil {
+			continue
 		}
 
-		for _, item := range batchReq {
-			shortURL, errBuildShortURL := url.CreateShortURL(item.OriginalURL)
-			if errBuildShortURL != nil {
-				continue
-			}
+		batch = append(batch, storage.BatchItem{
+			UserID:        userID,
+			CorrelationID: item.CorrelationID,
+			OriginalURL:   item.OriginalURL,
+			ShortURL:      shortURL,
+		})
+	}
 
-			batch = append(batch, storage.BatchItem{
-				UserID:        userID,
-				CorrelationID: item.CorrelationID,
-				OriginalURL:   item.OriginalURL,
-				ShortURL:      shortURL,
-			})
-		}
+	results, err := storage.Service.SaveBatch(batch)
 
-		results, err := storage.Service.SaveBatch(batch)
-
-		if err != nil {
-			logger.Log.Error(err.Error())
-			http.Error(res, "Bad Request", http.StatusBadRequest)
-			return
-		}
-
-		respJSON, err := json.Marshal(results)
-		if err != nil {
-			logger.Log.Error(err.Error())
-			http.Error(res, "Bad Request", http.StatusBadRequest)
-			return
-		}
-
-		res.Header().Set("Content-Type", "application/json")
-		res.WriteHeader(http.StatusCreated)
-
-		_, err = res.Write(respJSON)
-		if err != nil {
-			logger.Log.Error(err.Error())
-			http.Error(res, "Bad Request", http.StatusBadRequest)
-			return
-		}
-	} else {
-		http.Error(res, "Unauthorized", http.StatusUnauthorized)
+	if err != nil {
+		logger.Log.Error(err.Error())
+		http.Error(res, "Bad Request", http.StatusBadRequest)
 		return
 	}
+
+	respJSON, err := json.Marshal(results)
+	if err != nil {
+		logger.Log.Error(err.Error())
+		http.Error(res, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusCreated)
+
+	_, err = res.Write(respJSON)
+	if err != nil {
+		logger.Log.Error(err.Error())
+		http.Error(res, "Bad Request", http.StatusBadRequest)
+		return
+	}
+}
+
+func getUserID(res http.ResponseWriter, value any) (string, error) {
+	if value != nil {
+		userID, ok := value.(string)
+		if ok {
+			return userID, nil
+		}
+	}
+
+	return "", errors.New("")
 }

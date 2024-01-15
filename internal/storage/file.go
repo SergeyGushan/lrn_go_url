@@ -128,3 +128,7 @@ func (js *JSONStorage) GetURLByUserID(userID string) []URLSByUserIDResult {
 
 	return results
 }
+
+func (js *JSONStorage) DeleteURLS(urls []string, userID string) {
+
+}
