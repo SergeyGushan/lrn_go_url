@@ -119,7 +119,7 @@ func (ds *DatabaseStorage) GetURLByUserID(userID string) []URLSByUserIDResult {
 	}(rows)
 
 	if rows.Err() != nil {
-		logger.Log.Error(err.Error())
+		logger.Log.Error(rows.Err().Error())
 		return results
 	}
 
