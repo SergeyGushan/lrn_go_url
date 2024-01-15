@@ -8,6 +8,7 @@ import (
 	"github.com/SergeyGushan/lrn_go_url/internal/handlers"
 	"github.com/SergeyGushan/lrn_go_url/internal/middlewares"
 	"github.com/SergeyGushan/lrn_go_url/internal/storage"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -108,7 +109,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body st
 		}
 	}
 
-	token, err := authentication.BuildJWTString(authentication.User().GetID())
+	token, err := authentication.BuildJWTString(uuid.New().String())
 
 	if err == nil {
 		req.AddCookie(&http.Cookie{
