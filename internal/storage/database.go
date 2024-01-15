@@ -139,7 +139,8 @@ func (ds *DatabaseStorage) GetURLByUserID(userID string) []URLSByUserIDResult {
 	return results
 }
 
-func (ds *DatabaseStorage) DeleteURLS(urls []string, userID string, workersCount int) {
+func (ds *DatabaseStorage) DeleteURLS(urls []string, userID string) {
+	workersCount := 10
 	placeholders := strings.Repeat("$2,", len(urls))
 	if len(urls) > 0 {
 		placeholders = placeholders[:len(placeholders)-1] // Убираем последнюю запятую
