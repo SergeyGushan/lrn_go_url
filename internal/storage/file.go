@@ -3,6 +3,7 @@ package storage
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/SergeyGushan/lrn_go_url/cmd/config"
 	"github.com/google/uuid"
 	"os"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 type Record struct {
 	UUID        string `json:"uuid"`
+	UserID      string `json:"user_id"`
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 }
@@ -40,9 +42,10 @@ func NewJSONStorage(fileName string) (*JSONStorage, error) {
 	return js, nil
 }
 
-func (js *JSONStorage) Save(shortURL, originalURL string) error {
+func (js *JSONStorage) Save(shortURL, originalURL, userID string) error {
 	record := Record{
 		UUID:        uuid.New().String(),
+		UserID:      userID,
 		ShortURL:    shortURL,
 		OriginalURL: originalURL,
 	}
@@ -68,6 +71,7 @@ func (js *JSONStorage) SaveBatch(batch []BatchItem) ([]BatchResult, error) {
 	for _, item := range batch {
 		record := Record{
 			UUID:        item.CorrelationID,
+			UserID:      item.UserID,
 			ShortURL:    item.ShortURL,
 			OriginalURL: item.OriginalURL,
 		}
@@ -80,7 +84,7 @@ func (js *JSONStorage) SaveBatch(batch []BatchItem) ([]BatchResult, error) {
 
 		results = append(results, BatchResult{
 			CorrelationID: item.CorrelationID,
-			ShortURL:      record.ShortURL,
+			ShortURL:      fmt.Sprintf("%s/%s", config.Opt.BaseURL, record.ShortURL),
 		})
 	}
 
@@ -109,4 +113,23 @@ func (js *JSONStorage) loadFromFile(fileName string) error {
 	}
 
 	return nil
+}
+
+func (js *JSONStorage) GetURLByUserID(userID string) []URLSByUserIDResult {
+	results := make([]URLSByUserIDResult, 0)
+
+	for _, record := range js.Items {
+		if record.UserID == userID {
+			results = append(results, URLSByUserIDResult{
+				ShortURL:    fmt.Sprintf("%s/%s", config.Opt.BaseURL, record.ShortURL),
+				OriginalURL: record.OriginalURL,
+			})
+		}
+	}
+
+	return results
+}
+
+func (js *JSONStorage) DeleteURLS(urls []string, userID string) {
+
 }

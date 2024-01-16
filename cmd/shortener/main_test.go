@@ -3,17 +3,21 @@ package main
 import (
 	"encoding/json"
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/SergeyGushan/lrn_go_url/cmd/config"
+	"github.com/SergeyGushan/lrn_go_url/internal/authentication"
 	"github.com/SergeyGushan/lrn_go_url/internal/handlers"
+	"github.com/SergeyGushan/lrn_go_url/internal/middlewares"
 	"github.com/SergeyGushan/lrn_go_url/internal/storage"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 var fileName = os.TempDir() + "/test.log"
@@ -28,7 +32,15 @@ func Test_saveUrl(t *testing.T) {
 	requestPost, shortURL := testRequest(t, ts, http.MethodPost, "/", dataValue, false)
 
 	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
-	fullURL, err := storage.Service.GetOriginalURL(shortURL)
+
+	parsedURL, err := url.Parse(shortURL)
+	if err != nil {
+		panic(err)
+	}
+
+	pathWithoutSlash := strings.TrimLeft(parsedURL.Path, "/")
+
+	fullURL, err := storage.Service.GetOriginalURL(pathWithoutSlash)
 	assert.NoError(t, err)
 	assert.Equal(t, fullURL, dataValue)
 
@@ -53,7 +65,14 @@ func Test_shortUrl(t *testing.T) {
 	requestPost, shortURL := testRequest(t, ts, http.MethodPost, "/api/shorten", string(respJSON), false)
 
 	assert.Equal(t, requestPost.StatusCode, http.StatusCreated)
-	fullURL, err := storage.Service.GetOriginalURL(shortURL)
+
+	parsedURL, err := url.Parse(shortURL)
+	if err != nil {
+		panic(err)
+	}
+
+	pathWithoutSlash := strings.TrimLeft(parsedURL.Path, "/")
+	fullURL, err := storage.Service.GetOriginalURL(pathWithoutSlash)
 	assert.NoError(t, err)
 	assert.Equal(t, fullURL, structRes.URL)
 
@@ -64,19 +83,19 @@ func Test_shortUrl(t *testing.T) {
 }
 
 func Test_getUrl(t *testing.T) {
-	shortURL := "/MeQpwyse"
+	shortURL := "MeQpwyse"
 	dataValue := "https://github.com/SergeyGushan"
 	storage.Service, _ = storage.NewJSONStorage(fileName)
-	err := storage.Service.Save(config.Opt.BaseURL+shortURL, dataValue)
+	err := storage.Service.Save(shortURL, dataValue, "")
 	assert.NoError(t, err)
 
 	ts := httptest.NewServer(URLRouter())
 	defer ts.Close()
 
-	response, _ := testRequest(t, ts, http.MethodGet, shortURL, "", true)
+	response, _ := testRequest(t, ts, http.MethodGet, "/"+shortURL, "", true)
 
-	assert.Equal(t, response.StatusCode, http.StatusTemporaryRedirect)
-	assert.Equal(t, response.Header.Get("Location"), dataValue)
+	assert.Equal(t, http.StatusTemporaryRedirect, response.StatusCode)
+	assert.Equal(t, dataValue, response.Header.Get("Location"))
 
 	defer func() {
 		err := response.Body.Close()
@@ -105,6 +124,17 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body st
 		}
 	}
 
+	token, err := authentication.BuildJWTString(uuid.New().String())
+
+	if err == nil {
+		req.AddCookie(&http.Cookie{
+			Name:    middlewares.TokenKey,
+			Value:   token,
+			Expires: time.Now().Add(authentication.TokenExp),
+			Path:    "/",
+		})
+	}
+
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 
@@ -130,9 +160,9 @@ func TestGetOriginalURL(t *testing.T) {
 	defer db.Close()
 
 	ds := storage.NewDatabaseStorage(db)
-	rows := sqlmock.NewRows([]string{"original_url"}).AddRow("http://example.com")
+	rows := sqlmock.NewRows([]string{"original_url", "is_deleted"}).AddRow("http://example.com", false)
 
-	mock.ExpectQuery("SELECT original_url FROM urls WHERE short_url = \\$1").
+	mock.ExpectQuery("SELECT original_url, is_deleted FROM urls WHERE short_url = \\$1").
 		WithArgs("testShortURL").
 		WillReturnRows(rows)
 
@@ -152,11 +182,11 @@ func TestSave(t *testing.T) {
 	defer db.Close()
 
 	ds := storage.NewDatabaseStorage(db)
-	mock.ExpectExec("INSERT INTO urls \\(short_url, original_url\\) VALUES \\(\\$1, \\$2\\) ON CONFLICT \\(original_url\\) DO NOTHING").
-		WithArgs("testShortURL", "http://example.com").
+	mock.ExpectExec("INSERT INTO urls \\(user_id, short_url, original_url\\) VALUES \\(\\$1, \\$2, \\$3\\) ON CONFLICT \\(original_url\\) DO NOTHING").
+		WithArgs("", "testShortURL", "http://example.com").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err = ds.Save("testShortURL", "http://example.com")
+	err = ds.Save("testShortURL", "http://example.com", "")
 
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -171,17 +201,17 @@ func TestSaveBatch(t *testing.T) {
 
 	ds := storage.NewDatabaseStorage(db)
 	mock.ExpectBegin()
-	mock.ExpectExec("INSERT INTO urls \\(correlation_id, short_url, original_url\\) VALUES \\(\\$1, \\$2, \\$3\\)").
-		WithArgs("correlation1", "testShortURL1", "http://example.com1").
+	mock.ExpectExec("INSERT INTO urls \\(user_id, correlation_id, short_url, original_url\\) VALUES \\(\\$1, \\$2, \\$3, \\$4\\)").
+		WithArgs("", "correlation1", "testShortURL1", "http://example.com1").
 		WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec("INSERT INTO urls \\(correlation_id, short_url, original_url\\) VALUES \\(\\$1, \\$2, \\$3\\)").
-		WithArgs("correlation2", "testShortURL2", "http://example.com2").
+	mock.ExpectExec("INSERT INTO urls \\(user_id, correlation_id, short_url, original_url\\) VALUES \\(\\$1, \\$2, \\$3, \\$4\\)").
+		WithArgs("", "correlation2", "testShortURL2", "http://example.com2").
 		WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectCommit()
 
 	batch := []storage.BatchItem{
-		{CorrelationID: "correlation1", ShortURL: "testShortURL1", OriginalURL: "http://example.com1"},
-		{CorrelationID: "correlation2", ShortURL: "testShortURL2", OriginalURL: "http://example.com2"},
+		{UserID: "", CorrelationID: "correlation1", ShortURL: "testShortURL1", OriginalURL: "http://example.com1"},
+		{UserID: "", CorrelationID: "correlation2", ShortURL: "testShortURL2", OriginalURL: "http://example.com2"},
 	}
 
 	results, err := ds.SaveBatch(batch)
@@ -189,9 +219,9 @@ func TestSaveBatch(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(results))
 	assert.Equal(t, "correlation1", results[0].CorrelationID)
-	assert.Equal(t, "testShortURL1", results[0].ShortURL)
+	assert.Equal(t, "/testShortURL1", results[0].ShortURL)
 	assert.Equal(t, "correlation2", results[1].CorrelationID)
-	assert.Equal(t, "testShortURL2", results[1].ShortURL)
+	assert.Equal(t, "/testShortURL2", results[1].ShortURL)
 
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
